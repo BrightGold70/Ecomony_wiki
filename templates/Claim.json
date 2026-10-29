@@ -1,0 +1,16 @@
+{
+  "id": "",
+  "statement": "",
+  "sourcePath": "",
+  "sourceSha256": "",
+  "locator": "",
+  "research_question": "",
+  "evidence_kind": "descriptive",
+  "estimand": "unknown",
+  "identification_strategy": "unknown",
+  "population": "unknown",
+  "endpoint": "unknown",
+  "estimate": "unknown",
+  "uncertainty": "unknown",
+  "reviewStatus": "pending"
+}

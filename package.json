@@ -1,0 +1,19 @@
+{
+  "name": "economy-wiki-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline scoped economics research wiki and Obsidian dashboard",
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "test": "node --test dashboard/test-*.cjs scripts/test-*.cjs",
+    "test:python": "python3 -B scripts/test-synthesize.py",
+    "init": "node scripts/init-wiki.cjs",
+    "lint:wiki": "node scripts/lint-wiki.cjs",
+    "maintain": "node scripts/maintain-wiki.cjs",
+    "monitor": "node scripts/monitor-publications.cjs",
+    "qmd": "node scripts/qmd-adapter.cjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

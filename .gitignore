@@ -1,0 +1,14 @@
+# Generated research data, services and build output are never source.
+/economy_wiki/
+/.obsidian/
+/dist/
+/node_modules/
+**/__pycache__/
+**/*.pyc
+**/.DS_Store
+**/.env
+**/.env.*
+**/*.pdf
+**/*.sqlite*
+**/*.db
+**/*.log

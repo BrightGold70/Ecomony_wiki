@@ -1,0 +1,9 @@
+{
+  "id": "economy-keyword-search",
+  "name": "Economics Keyword Search",
+  "version": "1.3.0",
+  "minAppVersion": "1.5.0",
+  "description": "Offline economics research dashboard: scoped findings, comparisons, graph, review and provenance. Optional services require explicit setup.",
+  "author": "Local Hermes integration",
+  "isDesktopOnly": true
+}
