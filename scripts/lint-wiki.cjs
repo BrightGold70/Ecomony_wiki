@@ -26,7 +26,7 @@ function lintWiki(vault){
  }
  const links=[...text.matchAll(/\[\[(economy_wiki\/[^\]|#]+)(?:[^\]]*)\]\]/g)].map(x=>x[1]);
  if(compiled&&m.sources){const sourcePaths=[...m.sources.matchAll(/economy_wiki\/[^,\]"']+/g)].map(x=>x[0].trim());if(!sourcePaths.length)add(rel,'missing-source-path');links.push(...sourcePaths)}
- for(const target of new Set(links)){const resolved=path.resolve(vault,target+(target.endsWith('.md')?'':'.md'));if(!resolved.startsWith(root+path.sep))add(rel,'unsafe-link:'+target);else if(!fs.existsSync(resolved))add(rel,'broken-link:'+target)}
+ for(const target of new Set(links)){const resolved=path.resolve(vault,target+(/\.(md|pdf|txt|docx)$/i.test(target)?'':'.md'));if(!resolved.startsWith(root+path.sep))add(rel,'unsafe-link:'+target);else if(!fs.existsSync(resolved))add(rel,'broken-link:'+target)}
  if(folder==='Sources'){
  if(m.source_mode==='external'){externalSources++;if(!/^https?:\/\//.test(m.source_url||''))add(rel,'missing-external-url');if(!m.version||!dateOK(m.accessed)||!m.permission_note)add(rel,'missing-external-provenance')}
  else if(m.source_mode==='local'){
