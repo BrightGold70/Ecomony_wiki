@@ -1,5 +1,7 @@
 # Economics LLM Wiki — international-trade foundation
 
+**Already using a paper-collection AI agent?** Follow the [collector collaboration contract / 수집 에이전트 협업 안내](docs/COLLECTOR_COLLABORATION.md) to preserve single-writer ownership and maintain Source → original-paper links after daily intake.
+
 **Paper relationship navigation:** [Open wiki records, provenance and original PDFs](docs/PAPER_NAVIGATION.md) directly from graph nodes and related-document links. Includes Korean instructions and an explicit linked-only network option.
 
 **New: collected-folder intake → stored originals → linked drafts → grounded AI entity/topic proposals.** [English](docs/FOLDER_INTAKE.md) · [한국어](docs/FOLDER_INTAKE_KO.md). Preview first; explicit apply/move and pending human review.
