@@ -1,5 +1,7 @@
 # Economics LLM Wiki — international-trade foundation
 
+**Paper relationship navigation:** [Open wiki records, provenance and original PDFs](docs/PAPER_NAVIGATION.md) directly from graph nodes and related-document links. Includes Korean instructions and an explicit linked-only network option.
+
 **New: collected-folder intake → stored originals → linked drafts → grounded AI entity/topic proposals.** [English](docs/FOLDER_INTAKE.md) · [한국어](docs/FOLDER_INTAKE_KO.md). Preview first; explicit apply/move and pending human review.
 
 A reusable construction and management kit for economists. Adapted from [Hematology Wiki](https://github.com/BrightGold70/Hematology_wiki), with economics-specific evidence rules informed by [EconoSuite](https://github.com/BrightGold70/EconoSuite). Repository spelling `Ecomony_wiki` is intentional preservation of the supplied destination; the working research folder is `economy_wiki`.
