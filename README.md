@@ -1,62 +1,61 @@
-# Economics LLM Wiki — international-trade foundation
+# Economics LLM Wiki
 
-**Paper relationship navigation:** [Open wiki records, provenance and original PDFs](docs/PAPER_NAVIGATION.md) directly from graph nodes and related-document links. Includes Korean instructions and an explicit linked-only network option.
+**Start with your own research question, not somebody else's vault.**
 
-**New: collected-folder intake → stored originals → linked drafts → grounded AI entity/topic proposals.** [English](docs/FOLDER_INTAKE.md) · [한국어](docs/FOLDER_INTAKE_KO.md). Preview first; explicit apply/move and pending human review.
+[Start here — economist + AI helper](START_HERE.md) · [한국어 시작 안내](START_HERE_KO.md) · [Everyday use](docs/ECONOMIST_GUIDE.md) · [Technical setup](docs/FROM_SCRATCH.md)
 
-A reusable construction and management kit for economists. Adapted from [Hematology Wiki](https://github.com/BrightGold70/Hematology_wiki), with economics-specific evidence rules informed by [EconoSuite](https://github.com/BrightGold70/EconoSuite). Repository spelling `Ecomony_wiki` is intentional preservation of the supplied destination; the working research folder is `economy_wiki`.
+A reusable construction kit for economists who do not code. An authorized tool-using AI helper handles setup and bounded drafting; the economist chooses sources and judges evidence. It supports labor, macroeconomics, development, public finance, industrial organization, trade and other fields. The repository starts empty: no real papers, confidential data, accounts or author-specific configuration.
 
-**Start here:** [Economist workflow](docs/ECONOMIST_GUIDE.md) · [한국어 안내](docs/ECONOMIST_GUIDE_KO.md) · [Technical setup](docs/FROM_SCRATCH.md)
+## Build knowledge in three small steps
 
-## Aim
+1. **First paper:** preserve its authorized original/version or external pointer; create a readable Source summary and a located Literature extraction.
+2. **Second paper → first Topic:** compare both studies' mechanisms, data, estimands, identification assumptions, findings and limitations. Shared samples and working-paper/journal versions are not independent confirmation.
+3. **Third paper → update that Topic:** show old/proposed wording and source support before editing. Preserve the earlier version and decision. Material changes stay `economist-review-needed` until a new bounded human expert review—not merely a new link or a copied approval.
 
-Turn selected authorized sources into traceable study notes and connected, maintained economic explanations. Humans curate questions/evidence and judge identification/interpretation; authorized agents extract, connect, propose updates and audit structure. This is not an automatic research-validity certificate or policy-advice engine.
+Copy the [canonical AI-helper handoff](START_HERE.md#one-request-to-give-your-ai-helper). No need to learn terminal commands for everyday use; a chat-only assistant cannot perform the setup itself.
 
-## Knowledge model
+## Knowledge and evidence
 
-Questions → theory/mechanisms → studies → data → identification → findings → topic synthesis, linked to trade-policy records and review history.
+Questions → mechanisms/theory → studies → data/identification → located findings → maintained Topics. Sources/raw preserve provenance; Literature, Theories, Methods, Datasets, Policies, Analyses, Comparisons and Queries connect it. Keep JEL, dataset vintages/units/licensing, policy announcement/effective dates and publication versions explicit.
 
-- **Literature:** publication/version, JEL, question, sample, estimand, method, findings, limitations.
-- **Theories/Methods:** assumptions, mechanisms, propositions, identification threats and diagnostics.
-- **Datasets:** provider/query, coverage, units, classification edition, vintage and permissions.
-- **Policies:** official instrument, geography/products, announcement versus implementation/amendment.
-- **Analyses:** actual data/code/environment/output provenance and replication status.
-- **Claims/Topics/Comparisons/Queries:** source-located findings and reusable reviewed-or-pending synthesis.
-- **Sources/raw/Review/Setup:** immutable provenance, bounded decisions and organizing rules.
+Every Source summary explains question, mechanism, data/sample, identification (or absent/not applicable), estimand, findings, limits and relevance with actual quotes/locators and read scope. Descriptive association, causal interpretation, theoretical proposition, model counterfactual and independently reproduced output remain distinct. Never invent causal identification or computations. Diagnostics, lint, hashes and AI confidence do not certify econometrics or policy advice.
 
-Descriptive association, causal claim, theoretical proposition, counterfactual and reproduced output must remain distinguishable. Shared data/working-paper versions are not independent corroboration. Diagnostics do not prove identification.
+## Core versus optional
 
-## Foundation versus extensions
+| Layer | Requirements / boundary |
+|---|---|
+| Core local wiki/dashboard | Node.js 22+, Git for checkout, Obsidian desktop; no npm package dependencies or AI key |
+| Full tests / Python tools | Working Python 3.10+; check with doctor |
+| PDF extraction | Optional Poppler `pdftotext`; scanned PDFs need separately authorized OCR |
+| Semantic search | Optional QMD executable, local models and scoped index |
+| Provider synthesis tool | Optional Python + authenticated Hermes, explicit provider/model and previewed permission; current dashboard stays local evidence mode |
 
-The foundation adapts the local Obsidian dashboard, keyword findings/related links/comparison tools, lifecycle integrity, safe initializer and incremental structural audit. Optional local QMD, provider synthesis and publication-check components require separate setup/testing; downloading the repository does not configure services, credentials, collectors or schedules.
-
-Dataset, policy and analysis templates organize provenance; they do not fetch all data, validate trade classifications, execute estimators or independently verify proofs. Detailed delivered/tested boundaries are recorded in [acceptance](docs/ACCEPTANCE.md).
-
-Deferred: automatic journal intake, dataset/policy revision connectors, econometric execution, EconoSuite export/MCP integration and automated topic revision. No NotebookLM upload by default. Manuscript formatting belongs in EconoSuite, not the wiki core.
+A separate AI helper is not automatically configured as a synthesis service; the current dashboard does not invoke providers. [Optional service boundaries](docs/OPTIONAL_SERVICES.md) explain what remains not configured.
 
 ## Technical helper quick start
 
-Node.js 22+ and Git required; Obsidian desktop for the dashboard. Full desktop acceptance must be checked on your installation.
+From a checkout with the prerequisites above:
 
 ```sh
-git clone https://github.com/BrightGold70/Ecomony_wiki.git
-cd Ecomony_wiki
+node scripts/doctor.cjs
 npm test
+npm run test:python
 npm run build
+node scripts/first-wiki-demo.cjs --output /absolute/path/to/new-synthetic-demo
 node scripts/init-wiki.cjs /absolute/path/to/new-research-vault
 node scripts/lint-wiki.cjs /absolute/path/to/new-research-vault
 ```
 
-Follow [FROM_SCRATCH](docs/FROM_SCRATCH.md) to copy the built plugin, open the vault and add real evidence. Empty initialization is not a validated economic collection.
+Use different, deliberately chosen new absolute folders for the synthetic demo and real vault. The demo's evidence is **synthetic only**. Follow [setup](docs/FROM_SCRATCH.md) to deploy the built plugin and add authorized real papers. Initialization and empty lint are not a validated collection; full desktop acceptance must be checked on your installation.
 
-## New-article workflow
+## More routes
 
-Verify identity/scope/version → preserve authorized source → extract located results → compare existing topics/data/policies → propose old/new wording → obtain bounded review → update navigation/log → audit and refresh search. New files alone are not knowledge integration.
+- [Folder intake](docs/FOLDER_INTAKE.md) · [한국어](docs/FOLDER_INTAKE_KO.md): preview → verified copies → linked drafts → quoted additive AI proposals. Existing Topic revision remains a separate authorized task.
+- [Paper/source/original navigation](docs/PAPER_NAVIGATION.md): graph and related-document opening, including explicit linked-only view.
+- [Agent contract](docs/AGENT_RUN_CONTRACT.md) · [maintenance](docs/MAINTENANCE.md) · [acceptance and limits](docs/ACCEPTANCE.md).
 
-Use [agent contract](docs/AGENT_RUN_CONTRACT.md), [INGEST](prompts/INGEST.md), [QUERY](prompts/QUERY.md), [MAINTAIN](prompts/MAINTAIN.md), and [maintenance guide](docs/MAINTENANCE.md).
+## Privacy and origin
 
-## Privacy and repository ownership
+Reusable code, blank templates, prompts and manuals belong here—not the real research vault, protected microdata, licensed PDFs/extracts, credentials or runtime reports. External services require separate permission and can entail cost/retention. Search indexes are not backups. No collectors, schedules, cloud uploads, EconoSuite integration or econometric execution are enabled by initialization.
 
-This repository contains reusable code, blank templates, prompts, manuals and tests—not a real paper collection, confidential microdata, PDFs, model weights, credentials or operational reports. Runtime research stays in a separate vault/private state. External providers require deliberate permission for selected excerpts and may incur costs/retention. Search indexes are not backups.
-
-The upstream history was not imported. EconoSuite was reviewed as a design reference; its files/skills were not bulk copied. See [provenance](docs/PROVENANCE.md).
+Adapted from [Hematology Wiki](https://github.com/BrightGold70/Hematology_wiki), with economics evidence distinctions informed by [EconoSuite](https://github.com/BrightGold70/EconoSuite); see [provenance](docs/PROVENANCE.md). `Ecomony_wiki` preserves the supplied repository spelling; the initialized research subtree is `economy_wiki`. No change to licensing or repository visibility is implied.

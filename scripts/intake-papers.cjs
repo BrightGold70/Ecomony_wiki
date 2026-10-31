@@ -62,7 +62,7 @@ async function intake(options){
  const proposalDate=proposalHash?(manifest.proposals?.[proposalHash]?.date||date):date;
  const pages=proposal?compiler.validateProposal(proposal,domain,sources,root,readSafe,noteFront,wiki,proposalDate):[];
  if(apply&&proposalHash){manifest.proposals=manifest.proposals||{};manifest.proposals[proposalHash]={date:proposalDate};save();}
- if(apply){for(const item of items.filter(x=>x.status==='planned'||x.status==='duplicate')){
+ if(apply){for(const item of items.filter(x=>x.status==='planned')){
  if(manifest.records[item.hash]?.status==='saved')item.status='duplicate';
  const record=manifest.records[item.hash]||{name:item.name,ext:item.ext,date:new Date().toISOString().slice(0,10),status:'journaled'};manifest.records[item.hash]=record;save();
  const raw='raw/papers/'+item.hash+record.ext,source='Sources/'+item.hash+'.md',literature='Literature/'+item.hash+'.md';
@@ -82,7 +82,22 @@ async function intake(options){
  appendOnce(path.join(root,'log.md'),'batch '+batch,'- '+date+' batch '+batch+'; '+review+'; external agent packet '+packetName+'; integration pending.','# Wiki activity log\n');}
  for(const page of pages){exclusive(path.join(root,page.path),page.text);const link='[['+wiki+'/'+page.path.slice(0,-3)+']]';appendOnce(path.join(root,index),link,'- '+link+' — LLM proposed; human review pending','# Wiki index\n');appendOnce(path.join(root,'log.md'),'proposal '+sha256(page.text),'- '+date+' proposal '+sha256(page.text)+'; '+page.path+'; pending human review.','# Wiki activity log\n');}
  save();
- if(move)for(const item of items.filter(x=>['saved','duplicate'].includes(x.status))){if(sha256(stableRead(item.file))!==item.hash)throw Error('Inbox changed before removal');const raw='raw/papers/'+item.hash+manifest.records[item.hash].ext;if(sha256(stableRead(path.join(root,raw)))!==item.hash)throw Error('Stored evidence changed');fs.unlinkSync(item.file);item.status='moved';}
+ if(move){
+  const moving=items.filter(x=>['saved','duplicate'].includes(x.status));
+  // A saved journal does not prove that its artifacts survived. Do not
+  // reconstruct missing evidence notes or overwrite human edits on retries.
+  for(const item of moving){
+   if(sha256(stableRead(item.file))!==item.hash)throw Error('Inbox changed before removal');
+   const raw='raw/papers/'+item.hash+manifest.records[item.hash].ext;
+   if(sha256(stableRead(path.join(root,raw)))!==item.hash)throw Error('Stored evidence changed (raw collision)');
+   try{
+    for(const relative of ['Sources/'+item.hash+'.md','Literature/'+item.hash+'.md'])if(!stableRead(path.join(root,relative)).toString().trim())throw Error('Empty note: '+relative);
+    const link='[['+wiki+'/Literature/'+item.hash+']]';
+    if(!stableRead(path.join(root,index)).toString().includes(link)||!stableRead(path.join(root,'log.md')).toString().includes('intake '+item.hash)||!stableRead(path.join(root,review)).toString().includes('<!-- intake-batch '+batch+' -->'))throw Error('Missing intake bookkeeping');
+   }catch(e){throw Error('Saved intake artifacts incomplete; inbox preserved: '+e.message);}
+  }
+  for(const item of moving){if(sha256(stableRead(item.file))!==item.hash)throw Error('Inbox changed before removal');fs.unlinkSync(item.file);item.status='moved';}
+ }
  }
  return {root,dryRun:!apply,packet:packetName,review,related,proposalPages:pages.map(p=>p.path),items:items.map(({bytes,text,file,record,...rest})=>rest)};
  }finally{if(locked)fs.unlinkSync(lock);}

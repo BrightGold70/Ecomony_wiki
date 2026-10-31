@@ -1,6 +1,8 @@
 # Foundation acceptance and limits
 
-## Executed verification
+## Historical foundation verification
+
+The counts below describe the original foundation snapshot, not a current rerun after onboarding changes. Use actual current command output for acceptance; do not combine overlapping totals. The current newcomer route is [START_HERE](../START_HERE.md), with [setup](FROM_SCRATCH.md) and separately configured [optional services](OPTIONAL_SERVICES.md).
 
 - Clean export of staged source files, without upstream history or ignored research data: npm test, build, new-vault initialization, lint and persisted structural audit all exited 0.
 - Main npm suite: 83 tests, 82 passed, 1 optional real-QMD integration skipped, 0 failures. Some standalone assertion modules are also exercised within this command; counts are the actual aggregate printed by Node, not a sum of overlapping runs.

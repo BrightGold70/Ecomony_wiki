@@ -8,4 +8,4 @@ Economics content/schema/manuals were written for this foundation. Preserve upst
 
 ## Boundary
 
-This is a versioned construction kit, not Professor Kim's private research backup. Optional services and novice usability have separate acceptance criteria. Do not inherit claims of real-vault deployment or scientific approval from upstream documentation.
+This is a versioned construction kit, not an author-specific research backup. Optional services and novice usability have separate acceptance criteria. Do not inherit claims of real-vault deployment or scientific approval from upstream documentation.

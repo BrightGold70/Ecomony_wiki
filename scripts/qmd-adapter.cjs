@@ -104,10 +104,12 @@ function runBounded(executable, args, { timeoutMs = 120000, maxBytes = 8 * 1024 
   });
 }
 function options(input = {}) {
-  if(!input.toolRoot||!input.vault)throw Error('Optional QMD requires explicit vault and toolRoot; install/configure QMD separately');
-  const toolRoot = path.resolve(input.toolRoot);noSymlinks(toolRoot,true);
+  if(!input.vault)throw Error('Optional QMD requires explicit vault; install/configure QMD separately');
+  const configuredRoot = input.toolRoot || process.env.ECONOMY_QMD_ROOT;
+  if(!configuredRoot)throw Error('Optional QMD requires toolRoot or ECONOMY_QMD_ROOT; install/configure QMD separately');
+  const toolRoot = path.resolve(configuredRoot);noSymlinks(toolRoot,true);
   const state = path.join(toolRoot, 'research');
-  return { ...input, toolRoot, state, vault: path.resolve(input.vault || DEFAULT_VAULT), node: input.node || process.execPath };
+  return { ...input, toolRoot, state, vault: path.resolve(input.vault), node: input.node || process.execPath };
 }
 function commandPlan(input, args) {
   const o = options(input);

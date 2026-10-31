@@ -6,6 +6,7 @@ import os
 import re
 from pathlib import Path, PurePosixPath
 import signal
+import shutil
 import subprocess
 import sys
 
@@ -187,9 +188,14 @@ INPUT_JSON:
 
 
 def command(provider, model, timeout):
-    return ['hermes', 'chat', '--safe-mode', '--toolsets', 'none', '--provider', provider,
+    executable = shutil.which('hermes')
+    if not executable:
+        local = Path.home() / '.local/bin/hermes'
+        require(local.is_file() and os.access(local, os.X_OK), 'Hermes executable unavailable')
+        executable = str(local)
+    return [executable, 'chat', '--safe-mode', '--toolsets', '', '--provider', provider,
             '--model', model, '--query-file', '-', '--oneshot', '--format', 'stream-json',
-            '--max-turns', '1', '--run-budget', str(timeout - 5), '--source', 'tool']
+            '--max-turns', '1', '--source', 'tool']
 
 
 def invoke(prompt, provider, model, timeout):

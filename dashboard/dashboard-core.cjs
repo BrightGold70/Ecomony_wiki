@@ -1,15 +1,30 @@
-const {searchNotes,safeNotePath}=require('./keyword-search.cjs');
+const {paperDetails,safeNotePath}=require('./keyword-search.cjs');
 const STOP=new Set('the a an and or of to in for with from by on at is are was were this that these those as it be been not study studies paper papers firms firm economic evidence findings results analysis review required reported source abstract full text notes note population outcome outcomes policy treated draft extracted extraction independent zero pending metadata recorded screening access publisher downloaded download license storage reuse version history source record article articles interpretation limitation limitations available unavailable'.split(' '));
-function words(text){return [...text.toLowerCase().matchAll(/[a-z][a-z0-9-]{2,}/g)].map(m=>m[0]).filter(w=>!STOP.has(w))}
+function words(text){return (text.toLowerCase().match(/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*/gu)||[]).filter(w=>!STOP.has(w))}
+function visibleLinkLines(body){
+ const lines=[];let fence=null,comment=false;
+ for(const original of body.split(/\r?\n/)){
+  const raw=original.replace(/^(?:[ \t]*(?:>[ \t]?|(?:[-+*]|\d+[.)])[ \t]+))+/,'');
+  if(fence){const close=raw.match(/^ {0,3}(`{3,}|~{3,})\s*$/);if(close&&close[1][0]===fence[0]&&close[1].length>=fence.length)fence=null;continue}
+  let line='',offset=0;
+  while(offset<raw.length){
+   if(comment){const end=raw.indexOf('-->',offset);if(end<0)break;comment=false;offset=end+3}
+   else{const start=raw.indexOf('<!--',offset);if(start<0){line+=raw.slice(offset);break}line+=raw.slice(offset,start);comment=true;offset=start+4}
+  }
+  const open=line.match(/^ {0,3}(`{3,}|~{3,})/);if(open){fence=open[1];continue}
+  lines.push(line);
+ }
+ return lines;
+}
 function buildIndex(notes){
  const rows=[];
  for(const n of notes){if(n.isSymlink||!safeNotePath(n.path))continue;
-  // Reuse the tested presentation extractor; matching the whole note title gives one result.
-  const body=n.text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/,'');const title=(body.match(/^#\s+(.+)$/m)||[])[1]||n.path.split('/').pop();
-  const info=searchNotes([n],title.split(/\s+/)[0])[0];if(!info)continue;
+  // Presentation extraction must not depend on a filename matching note text.
+  const body=n.text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/,'');const title=(body.match(/^#\s+(.+)$/m)||[])[1]||n.path.split('/').pop().replace(/\.md$/,'');
+  const info={...paperDetails(n.text),path:n.path,title,snippet:title,score:0};
   const substantive=[title,info.summary].join(' ').replace(/https?:\/\/\S+/g,'').replace(/economy_wiki\/\S+/g,'');
   const counts=new Map();for(const w of words(substantive))counts.set(w,(counts.get(w)||0)+1);
-  const explicit=[];for(const line of body.split('\n'))for(const m of line.matchAll(/\[\[([^\]|#]+)(?:[^\]]*)\]\]/g)){let target=m[1];if(!target.endsWith('.md'))target+='.md';explicit.push({target,context:line.slice(0,900)})}
+  const explicit=[];for(const line of visibleLinkLines(body))for(const m of line.matchAll(/\[\[([^\]|#]+)(?:[^\]]*)\]\]/g)){let target=m[1];if(!target.endsWith('.md'))target+='.md';explicit.push({target,context:line.slice(0,900)})}
   rows.push({...info,raw:n.text,counts,explicit});
  }
  const df=new Map();for(const row of rows)for(const term of row.counts.keys())df.set(term,(df.get(term)||0)+1);

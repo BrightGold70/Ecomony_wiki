@@ -16,6 +16,10 @@ Missing metadata: fill verified fields only. Duplicate candidates: inspect ident
 
 Dataset, policy or source changes should flag directly declared dependent records. Unrecorded semantic relationships can be missed. Dataset changes do not automatically rerun analyses. Changes in inspected material do not reverse economist decisions silently; preserve prior reviewed versions and propose bounded revisions.
 
+## Material changes and preserved decisions
+
+For the third-paper update and later revisions, default to one existing Topic plus index/log bookkeeping. Show old/proposed wording, located evidence and rationale; obtain authorization first. Preserve old bytes and bounded human decisions/receipts in a private non-indexed version archive, with a ledger/log reference. Set materially changed current content to `economist-review-needed`; archive/remove old current approval fields rather than copying or re-dating them. Fresh expert review is required for that new version. This is a helper/human workflow, not automatic maintenance or lint behavior. See the [run contract](AGENT_RUN_CONTRACT.md).
+
 ## After integration
 
 Update index/log, refresh the dashboard and separately rebuild optional semantic search. Source changes alone do not regenerate Topic conclusions. Follow prompts/MAINTAIN.md and record unresolved work.

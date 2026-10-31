@@ -1,50 +1,75 @@
 # Build from scratch — technical helper route
 
-Read the [economist guide](ECONOMIST_GUIDE.md) and [agent contract](AGENT_RUN_CONTRACT.md) first. The kit is empty and does not install data collectors or schedulers.
+Read [START_HERE](../START_HERE.md), the [economist guide](ECONOMIST_GUIDE.md) and [run contract](AGENT_RUN_CONTRACT.md). This kit starts empty; create the user's own research vault, not a copy of an author's deployment.
 
-## Prerequisites and clean setup
+## 1. Prerequisites and read-only diagnosis
 
-Git, Node.js 22+ and Obsidian desktop. Optional services need additional software; do not install them to solve a basic keyword-search problem. GitHub account access is needed if the repository is private; use a credential manager, never committed tokens.
+- **Core:** Git, Node.js 22+; Obsidian desktop for the dashboard. No npm package dependencies or AI key for local keyword search.
+- **Full tests and Python-backed tools:** working Python 3.10+. Both `npm test` and `npm run test:python` can exercise Python; Node alone is not full-suite readiness.
+- **Optional:** Poppler `pdftotext` for text-layer PDFs; QMD/models for semantic search; authenticated Hermes plus approved provider/model for the separate synthesis tool. The current dashboard stays local evidence mode; a separately used AI helper is not automatically a configured provider service.
 
 ```sh
 git clone https://github.com/BrightGold70/Ecomony_wiki.git
 cd Ecomony_wiki
+node scripts/doctor.cjs
+```
+
+The doctor is read-only. Core readiness and optional readiness are separate. Semantic/synthesis `ready: false` means not configured/verified, not necessarily a failed installation. Check the reported executable and actual runtime version; an installed but broken Python is not readiness. Ask before installs/authentication, and never commit tokens. If this repository requires account access, use an approved credential manager rather than changing visibility.
+
+## 2. Exercise the code before real research
+
+With a working Python 3.10+ and Node 22+:
+
+```sh
 npm test
+npm run test:python
 npm run build
+node scripts/first-wiki-demo.cjs --output /absolute/path/to/new-synthetic-demo
+```
+
+Choose a new **absolute** demo folder, separate from the checkout and real vault. This exercise contains **synthetic evidence only**; it demonstrates a first-paper → second-paper/Topic → third-paper/update path, not citation verification, actual economic findings, causal validation or economist approval. Read its actual output; do not invent test counts or claim native Obsidian acceptance from a filesystem fixture.
+
+## 3. Initialize a separate real vault
+
+Preview the exact destination with the user, then:
+
+```sh
 node scripts/init-wiki.cjs /absolute/path/to/new-research-vault
 node scripts/lint-wiki.cjs /absolute/path/to/new-research-vault
 ```
 
-Pass the parent vault root, not its economy_wiki subfolder. Initialization is additive/non-overwriting. Empty lint coverage is expected, not validated economic evidence. Use a separate vault from this source repository to keep research out of Git.
+Pass the **parent vault root**, not its `economy_wiki` subfolder. Initialization is additive/non-overwriting. Existing vault schemas/templates are not automatically upgraded; propose a bounded migration if needed. Empty lint coverage is expected, not validated research. Keep this vault and its private state outside the source checkout.
 
-Copy built `dist/economy-keyword-search/` into the new vault's corresponding `.obsidian/plugins/` folder. Open that vault in Obsidian. Review the code and enable the local community plugin in Settings; use the economy search command from the command palette. Do not overwrite another plugin's configuration. This does not install models/provider accounts.
+Copy built `dist/economy-keyword-search/` to the corresponding `.obsidian/plugins/economy-keyword-search/` folder of the new vault. Do not overwrite another plugin's settings. Open that vault in Obsidian, review/enable the local community plugin and use the command containing “economy” from the command palette. Confirm actual desktop behavior; build output does not prove the UI works on this installation.
 
-## First authorized evidence
+## 4. First paper → second paper and Topic
 
-Define Setup/Scope-policy.md and taxonomy; read SCHEMA/index/log. Copy the Source template into Sources, record verified title and identifiers, source access/version and permission. Choose local or external mode. Local raw evidence must be immutable versioned bytes within raw/, hashed with SHA256:
+Define `economy_wiki/Setup/Scope-policy.md`: question, field, setting, period, exclusions, publication types and source/data permissions. No trade-only default is required. Read target SCHEMA/index/log.
+
+For paper one use the Source and Literature templates. Verify identity/version, evidence read and permission. Local mode stores immutable original bytes within `raw/`; compute SHA256 from the original file, not from an extraction:
 
 ```sh
 node -e "const f=require('node:fs'),c=require('node:crypto');console.log(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" /absolute/path/to/new-research-vault/economy_wiki/raw/selected-source-v1.txt
 ```
 
-Set raw_path relative to economy_wiki and raw_sha256 to actual output. External pointers instead require URL/version/accessed/permission; do not pretend they have a checked local hash.
+Set `raw_path` relative to `economy_wiki`, and `raw_sha256` to the actual output. External mode instead needs URL, version, access date and permission note; it has no checked local hash. Every Source body must visibly link to an actual original or publisher/repository destination. Never silently replace an earlier version.
 
-Copy Literature template, populate real metadata and source links such as `[[economy_wiki/Sources/selected-source]]`. Record exact evidence read and locators. Retain economist-review-needed. Add an index entry, append log, run lint.
+Write the Source summary required by the [run contract](AGENT_RUN_CONTRACT.md#source-content-contract): question, mechanism, data/sample/period, actual identification (or absent/not applicable), estimand, findings/uncertainty, limits/relevance, actual read scope and exact quotes/locators. An abstract or deterministic excerpt is partial evidence, not a completed full-paper appraisal. Create the linked Literature draft with `economist-review-needed`; do not fill unknown causal metadata with plausible claims.
 
-Repeat for justified related evidence, then create a Topic with source links, agreement/disagreement and applicability. Use Dataset/Policy/Method/Theory/Analysis templates when applicable; connect only real relationships. Comparisons and saved Queries retain citations/review boundaries even if not in a study-results screen.
+Repeat for paper two, then create one justified Topic comparing both. Link relevant Dataset/Policy/Method/Theory/Analysis notes only where warranted. Preserve JEL, dataset vintages/units/licensing, policy dates, version overlap and shared samples. Add real compiled paths to index, append log and lint.
 
-## Verify basic use
+## 5. Third paper → bounded substantive update
 
-Refresh dashboard, search a term actually stored, open correct note/source, compare studies and inspect graph edges. Confirm missing data stay unknown. Verify new domain records can be found where supported. Test reset and review indicators. No keyword hit does not establish literature absence.
+Process its Source/Literature drafts, locate the SAME Topic, and show old wording → proposed wording → source/version/locator → rationale. Explain an actual change in interpretation, qualification, disagreement or applicability, not just a new link. Stop for authorization. Default maximum existing research notes edited is one Topic, with index/log as bookkeeping. If no substantive revision is justified, document a reasoned no-change decision rather than pretend one occurred.
 
-## Maintenance
+Before an approved edit preserve old bytes and bounded review decision/receipt in a private non-indexed version archive. Set materially changed current content to `economist-review-needed`, archive/remove its old current approval fields and retain a reference in ledger/log. Earlier review remains historical for the earlier version. Only a fresh, explicit human expert review can approve the new content. These are helper/human steps, not automatic intake or lint behavior.
 
-See [maintenance](MAINTENANCE.md). Keep registry outside the vault. First baseline is inventory, not universal stale evidence. After a source change inspect declared dependent claims/topics. Update index/log and review decisions deliberately. Do not treat hash/lint checks as econometric validation.
+## 6. Verify basic use and maintenance
 
-## Optional services
+Refresh the dashboard; search a term actually stored, open the correct note/source/original and inspect links and comparisons. Default graph includes isolated records; use linked-only view deliberately. Missing data stay unknown. No retrieval hit does not establish literature absence.
 
-QMD needs its own executable/models and research-scoped index. Provider synthesis needs an explicitly configured executable/provider/model and previewed transmission permission. Inspect each CLI's `--help` before setup and verify on a small authorized corpus. The migrated adapters are not a claim that these services were installed or live-tested here. Publication monitoring does not guarantee complete retraction coverage. No external data connector or EconoSuite integration is enabled by initialization.
+Run lint and inspect [maintenance](MAINTENANCE.md), using private external registry/report paths. Check coverage, not just exit status. After source changes inspect declared dependencies; matching hashes do not prove currency and audits do not rewrite Topics. Optional semantic indexing is a separate operation. Test a private backup restoration separately.
 
-## Agent handoff
+## Optional services and folder intake
 
-Provide vault root, question/scope, exact sources, allowed writes and external-provider boundary. Follow prompts/INGEST.md. Require a change preview, source preservation, actual check results and pending human decisions. Test first with labelled synthetic fixtures; then a bounded real-source pilot. A successful clean-room build is not observed completion by a nontechnical newcomer.
+Use [optional services](OPTIONAL_SERVICES.md) for runtime boundaries, explicit permissions and unconfigured states; do not install a model to solve basic keyword-search failure. [Folder intake](FOLDER_INTAKE.md) previews selected files, copies originals and creates drafts/additive proposals. It cannot overwrite an existing Topic; that revision needs the bounded authorized process above. Use the implemented economics flags, not a hematology content-evidence gate. No collector, scheduler, data connector, cloud upload or EconoSuite integration is enabled by initialization.

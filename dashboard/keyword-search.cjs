@@ -32,4 +32,4 @@ function searchNotes(notes,query){
  }
  return rows.sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title));
 }
-module.exports={searchNotes,safeNotePath};
+module.exports={searchNotes,safeNotePath,paperDetails};

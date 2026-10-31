@@ -2,6 +2,7 @@
 /economy_wiki/
 /.obsidian/
 /dist/
+/test-fixtures/
 /node_modules/
 **/__pycache__/
 **/*.pyc

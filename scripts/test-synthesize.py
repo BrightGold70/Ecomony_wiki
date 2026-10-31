@@ -23,6 +23,10 @@ class SynthesisTests(unittest.TestCase):
         spec.loader.exec_module(cls.backend)
 
     def setUp(self):
+        # Provider execution is mocked; do not depend on a Hermes installation.
+        discovery = patch('shutil.which', return_value='/synthetic/bin/hermes')
+        discovery.start()
+        self.addCleanup(discovery.stop)
         self.tmp = tempfile.TemporaryDirectory(dir=os.environ.get('TMPDIR'))
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
@@ -152,6 +156,19 @@ class SynthesisTests(unittest.TestCase):
             {'type': 'result', 'text': json.dumps(self.output), 'exit_code': 0}])), '')
         return proc
 
+    def test_hermes_resolution_uses_path_then_executable_user_local_fallback(self):
+        with patch('shutil.which', return_value='/synthetic/bin/hermes'):
+            self.assertEqual(self.backend.command('nous', 'model', 30)[0], '/synthetic/bin/hermes')
+        local = self.root / '.local/bin/hermes'
+        local.parent.mkdir(parents=True)
+        local.write_text('#!/bin/sh\nexit 0\n')
+        local.chmod(0o700)
+        with patch('shutil.which', return_value=None), patch.object(Path, 'home', return_value=self.root):
+            self.assertEqual(self.backend.command('nous', 'model', 30)[0], str(local))
+            local.chmod(0o600)
+            with self.assertRaisesRegex(self.backend.Rejected, 'Hermes executable unavailable'):
+                self.backend.command('nous', 'model', 30)
+
     def test_mock_provider_uses_safe_no_tools_stdin(self):
         proc = self.completed()
         prompt = self.backend.make_prompt(self.payload)
@@ -160,7 +177,8 @@ class SynthesisTests(unittest.TestCase):
         self.assertEqual(result, self.output)
         cmd = popen.call_args.args[0]
         self.assertIn('--safe-mode', cmd)
-        self.assertEqual(cmd[cmd.index('--toolsets') + 1], 'none')
+        self.assertEqual(cmd[cmd.index('--toolsets') + 1], '')
+        self.assertNotIn('--run-budget', cmd)
         self.assertEqual(cmd[cmd.index('--query-file') + 1], '-')
         self.assertNotIn(self.text, cmd)
         self.assertTrue(popen.call_args.kwargs['start_new_session'])

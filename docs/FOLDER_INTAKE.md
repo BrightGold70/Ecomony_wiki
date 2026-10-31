@@ -1,5 +1,7 @@
 # Collected papers → stored sources → connected wiki drafts
 
+[Canonical first-two-papers → Topic → third-paper update](../START_HERE.md) · [한국어](FOLDER_INTAKE_KO.md)
+
 ## For the economist: what to do
 
 1. Ask your authorized helper to designate one **incoming papers folder**, separate from private documents and from the wiki's storage folder.
@@ -25,13 +27,13 @@
 - Default preview does not move input files. Application and inbox removal are deliberate choices.
 - An original must remain recoverable until storage is verified and required notes/navigation records are written. Errors remain visible and must not be described as completed moves.
 - Keep copies of original evidence and a separate private backup. This workflow is not a backup/restore system.
-- Do not point intake at a whole personal library, Dropbox root or patient/confidential-data folder. Scope/private-file boundaries still apply.
+- Do not point intake at a whole personal library, shared-drive root or confidential firm/household/administrative-data folder. Scope/private-file boundaries still apply.
 - A paper's appearance in the incoming folder is not automatic scientific scope approval. An agent must respect the scope policy; unassessed material remains pending.
 - Repeated runs must not create duplicate study drafts for identical bytes or overwrite existing originals. Review failures and journal state before retrying after an interruption.
 
 ## Operator route
 
-The CLI is `scripts/intake-papers.cjs`; consult `--help` for the implemented flags and proposal schema. Start with a dry preview in an isolated fixture, then a small authorized real batch. Keep state outside the research vault. Install Poppler's `pdftotext` separately if PDF extraction is needed; never silently treat an image-only PDF as extracted evidence.
+The CLI is `scripts/intake-papers.cjs`; consult `--help` for the implemented flags and proposal schema. Economics does not require a `--content-evidence` flag: do not copy a medical acquisition gate. The Source content requirements in the [run contract](AGENT_RUN_CONTRACT.md#source-content-contract) are a separate helper completion task. Storage and quote matching do not complete those summaries or validate identification. Start with a dry preview in an isolated fixture, then a small authorized real batch. Keep state outside the research vault. Install Poppler's `pdftotext` separately if PDF extraction is needed; never silently treat an image-only PDF as extracted evidence.
 
 The workflow is on-demand. Watching a folder continuously, installing a scheduler, OCR automation, native dashboard intake controls and model/provider setup are separate actions, not implied by this feature.
 
@@ -50,6 +52,8 @@ node scripts/intake-papers.cjs --vault /absolute/vault --inbox /absolute/incomin
 node scripts/intake-papers.cjs --vault /absolute/vault --inbox /absolute/incoming --state-dir /absolute/state --domain economy --proposal /absolute/proposal.json --apply --move
 ```
 
+This additive proposal route cannot revise an existing Topic. A third paper needs a separate old/proposed wording review and authorized substantive update to the SAME Topic, preserving the old version/decision and resetting changed current content to `economist-review-needed`. See the [run contract](AGENT_RUN_CONTRACT.md).
+
 Keep the inbox originals until proposal compilation is complete: the current proposal validator reads evidence from the selected inbox files. `--move` without a proposal is permitted for storage-only intake but ends this same-inbox compilation route; defer it unless you intentionally need only the storage/draft stage.
 
 The external `agent-packet-<batch>.json` includes exact `applyArgv` and this proposal structure:
@@ -62,7 +66,9 @@ Use actual packet paths, quotes and locators; the example cannot be applied unch
 
 Limits: top-level selected files only, at most 100 files, 20 MiB each, 50 MiB input batch; bounded context 1,000 compiled notes / 10 MiB. No OCR, bibliographic DOI deduplication, automatic topic overwrite, background watcher or provider call. Checks are not a sandbox against concurrent hostile directory replacement and cannot guarantee a power-loss transaction across all outputs.
 
-## Verification of this release
+## Historical intake verification
+
+The following counts belong to the earlier intake delivery, not a current rerun of the expanded onboarding/runtime suite. Use actual current test output for new acceptance claims.
 
 Economics intake suite: 15 tests passed, including actual text-layer PDF extraction. Full Economics CJS run: 97 passed, one optional QMD integration skipped. Hematology port integration verifies preserved Index casing, pending clinical review, original-byte storage, grounded topic application and move after save; full Hematology run: 72 passed, one optional QMD integration skipped.
 

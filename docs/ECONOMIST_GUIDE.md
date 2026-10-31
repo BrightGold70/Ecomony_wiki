@@ -1,24 +1,24 @@
 # Economist guide — build knowledge without writing code
 
-[한국어](ECONOMIST_GUIDE_KO.md) · [README](../README.md)
+[한국어](ECONOMIST_GUIDE_KO.md) · [Canonical AI-helper start request](../START_HERE.md) · [README](../README.md)
 
 A prepared dashboard needs no coding for ordinary use. One-time setup still needs an authorized tool-using AI assistant or technical helper; a chat-only answer cannot install software. The kit starts empty.
 
 ## 1. Define a first question
 
-Start narrowly: for example, how tariff changes affect bilateral merchandise trade. Choose geography, years, products, source types and exclusions. Use a separate research-only vault; confidential firm/household data stay outside by default.
+Start narrowly: for example, minimum wages and employment, monetary policy transmission, education returns or tariff changes. Choose setting, years, population/sectors, source types and exclusions. Use a separate research-only vault; confidential firm/household data stay outside by default.
 
-Send your helper:
-
-> Build this repository in a new research-only vault using FROM_SCRATCH and the agent contract. My question is [question]. I will choose initial sources. Explain local/external processing and costs; do not enable cloud uploads or recurring jobs without permission. Show one verified study, then a connected topic from a few papers. Run checks and tell me what actually works. Keep economist review pending.
+Copy the [canonical handoff](../START_HERE.md#one-request-to-give-your-ai-helper), filling in your question, new vault and selected sources. The helper should run the read-only doctor first. Node.js 22+ is core; full tests need working Python 3.10+. Poppler, QMD and Hermes/provider services are optional and separately authorized.
 
 ## 2. Build the first knowledge, not just a PDF folder
 
-Choose a few authorized papers. The agent checks exact identity/version and creates Sources and Literature notes. Ask it to extract the question, setting/sample, estimand, identification assumptions, specification/inference, estimates/uncertainty, limitations and exact table/page/column. Theory needs assumptions/propositions, not a forced regression template.
+Choose two authorized papers first. For each, the agent checks identity/version and creates Sources and Literature drafts. Every Source needs a readable summary of question, mechanism/theory, data/sample/period, actual identification (or absent/not applicable), estimand, findings/units/uncertainty, limitations and relevance, with actual read scope and exact supporting quotes/locators. Literature carries the detailed specification/inference and extraction. Theory needs assumptions/propositions, not a forced regression template. Never invent causal identification or JEL codes.
 
 Link relevant Dataset, Policy, Method or Theory records. Ask for one Topic explaining what the papers jointly support and where they differ. Working-paper and published versions may be the same study. Shared samples must not be counted as independent confirmation.
 
 Review the important original passages. Separate author claim, supporting evidence and your judgment. Approval of an extracted coefficient is not endorsement of a policy recommendation.
+
+Then select paper three and request a substantive update to that **same Topic**: old wording → proposed wording → exact source support → reason and applicability. Authorize before the edit; default maximum existing research notes changed is one Topic, plus index/log bookkeeping. A mere added link is not a substantive update. If no change is justified, record why without fabricating a finding. Preserve old version and review decisions/receipts in a private non-indexed archive. Materially changed current content returns to `economist-review-needed`; old approval fields must not carry over. Only a fresh bounded human expert review can approve that new version.
 
 ## 3. Use the dashboard
 
@@ -30,7 +30,7 @@ Use the comparison selection under result cards and **Compare selected** for sid
 
 Use **Graphical paper links** to inspect recorded links and suggested similarities. Similarity is not agreement, causality or independent replication. A country/product record or research note can be navigational knowledge without being empirical evidence.
 
-Optional semantic search requires local models and index setup. Provider-written synthesis requires a preview and deliberate external call. Never include confidential excerpts unless explicitly authorized. Citation checks do not establish entailment or econometric validity.
+Optional semantic search requires local models and index setup. The current dashboard stays local evidence mode; separately invoked provider-written synthesis requires a preview and deliberate external call. Never include confidential excerpts unless explicitly authorized. Citation checks do not establish entailment or econometric validity.
 
 ## 4. Add every new article through a repeatable request
 

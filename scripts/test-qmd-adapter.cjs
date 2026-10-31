@@ -50,6 +50,26 @@ test('bounded runner kills a timed out process and limits output without a shell
   assert.equal(result.stdout.trim(), '$(touch nope)');
 });
 
+test('QMD root override is explicit, argument wins, and Node uses the current executable', () => {
+  const { commandPlan } = require(adapterPath);
+  const previous = process.env.ECONOMY_QMD_ROOT;
+  try {
+    process.env.ECONOMY_QMD_ROOT = '/owned/env-qmd';
+    const plan = commandPlan({ vault: '/owned/vault' }, ['--version']);
+    assert.equal(plan.cwd, '/owned/env-qmd');
+    assert.equal(plan.executable, process.execPath);
+    assert.equal(plan.env.HOME, '/owned/env-qmd/home');
+    assert.equal(plan.env.ECONOMY_QMD_ROOT, undefined);
+    assert.equal(commandPlan({vault:'/owned/vault',toolRoot:'/owned/argument'},[]).cwd,'/owned/argument');
+    assert.throws(()=>commandPlan({},[]), /explicit vault/);
+    delete process.env.ECONOMY_QMD_ROOT;
+    assert.throws(()=>commandPlan({vault:'/owned/vault'},[]), /ECONOMY_QMD_ROOT/);
+  } finally {
+    if(previous === undefined) delete process.env.ECONOMY_QMD_ROOT;
+    else process.env.ECONOMY_QMD_ROOT = previous;
+  }
+});
+
 test('isolated command plan pins collection, index, environment and no-rerank', () => {
   const { commandPlan } = require(adapterPath);
   assert.equal(typeof commandPlan, 'function');
