@@ -52,6 +52,8 @@ Use different, deliberately chosen new absolute folders for the synthetic demo a
 
 - [Folder intake](docs/FOLDER_INTAKE.md) · [한국어](docs/FOLDER_INTAKE_KO.md): preview → verified copies → linked drafts → quoted additive AI proposals. Existing Topic revision remains a separate authorized task.
 - [Personal research entities](docs/entity-personalization.md): choose ordered metadata field/value shortcuts with your own labels; empty by default. Remove hides buttons, never evidence.
+- [Evidence completeness](docs/EVIDENCE_COMPLETENESS.md): missing-information filters, recorded economics dimensions, exact original locators and unverified version/sample/dataset overlap warnings.
+- [Human-controlled Topic proposals](docs/TOPIC_PROPOSALS.md): read-only exact preview → individual accept/reject decisions → confirmation and deliberate apply, with immutable history and economist-review-needed reset.
 - [Paper/source/original navigation](docs/PAPER_NAVIGATION.md): graph and related-document opening, including explicit linked-only view.
 - [Agent contract](docs/AGENT_RUN_CONTRACT.md) · [maintenance](docs/MAINTENANCE.md) · [acceptance and limits](docs/ACCEPTANCE.md).
 

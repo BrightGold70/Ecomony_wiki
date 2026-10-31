@@ -2,9 +2,37 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const {resolvePaperActions,openPaperAction}=require('./paper-navigation.cjs');
 const note='economy_wiki/Literature/a.md',source='economy_wiki/Sources/a.md',pdf='economy_wiki/raw/a.pdf';
+test('unreadable current note or source fails closed instead of using cached confirmation',async()=>{
+ const entry={source_path:source,locator:'Printed p. S8',pdf_page:9,pdf_page_verified:true};
+ for(const unreadable of [note,source]){
+  const {app,calls}=fixture({sources:[source],evidence_locators:[entry]});const read=app.vault.read;
+  const page=(await resolvePaperActions(app,{path:note})).find(a=>a.kind==='pdf-page');assert.ok(page);
+  app.vault.read=async f=>{if(f.path===unreadable)throw Error('unreadable');return read(f)};
+  assert.equal(await openPaperAction(app,page),false);assert.equal(calls.length,0);
+ }
+});
+test('click rejects removed current source PDF mapping despite a stale source metadata cache',async()=>{
+ const entry={source_path:source,locator:'Printed p. S8',pdf_page:9,pdf_page_verified:true};const {app,calls}=fixture({sources:[source],evidence_locators:[entry]});
+ const page=(await resolvePaperActions(app,{path:note})).find(a=>a.kind==='pdf-page');assert.ok(page);
+ const read=app.vault.read;app.vault.read=async f=>f.path===source?'# No original recorded':read(f);
+ assert.equal(await openPaperAction(app,page),false);assert.equal(calls.length,0);
+});
+test('click rejects a removed on-disk confirmation despite stale frontmatter and cached note bytes',async()=>{
+ const entry={source_path:source,locator:'Printed p. S8',pdf_page:9,pdf_page_verified:true};
+ const confirmed='---\nsources: ['+source+']\nevidence_locators: '+JSON.stringify([entry])+'\n---';
+ let current=confirmed;const {app,calls}=fixture({sources:[source],evidence_locators:[entry]});
+ app.vault.read=async f=>f.path===note?current:'---\nraw_path: raw/a.pdf\n---';
+ app.vault.cachedRead=async f=>f.path===note?confirmed:'---\nraw_path: raw/a.pdf\n---';
+ const page=(await resolvePaperActions(app,{path:note,raw:confirmed})).find(a=>a.kind==='pdf-page');assert.ok(page);
+ assert.equal(await openPaperAction(app,page),true);assert.equal(calls.length,1);
+ current='---\nsources: ['+source+']\nevidence_locators: []\n---';
+ assert.equal(await openPaperAction(app,page),false);assert.equal(calls.length,1);
+ assert.equal((await resolvePaperActions(app,{path:note,raw:confirmed})).some(a=>a.kind==='pdf-page'),false);
+});
+
 function fixture(meta={sources:[source]},sourceMeta={raw_path:'raw/a.pdf'}){
  const files=new Map([note,source,pdf].map(path=>[path,{path,extension:path.split('.').pop()}]));const calls=[];
- const app={vault:{getAbstractFileByPath:p=>files.get(p),cachedRead:async()=>'',adapter:{stat:async p=>files.has(p)?{type:'file'}:null}},metadataCache:{getFileCache:f=>({frontmatter:f.path===note?meta:sourceMeta})},workspace:{openLinkText:async(...args)=>calls.push(args)}};
+ const app={vault:{getAbstractFileByPath:p=>files.get(p),read:async f=>'---\n'+Object.entries(f.path===note?meta:sourceMeta).map(([k,v])=>k+': '+JSON.stringify(v)).join('\n')+'\n---',cachedRead:async()=>'',adapter:{stat:async p=>files.has(p)?{type:'file'}:null}},metadataCache:{getFileCache:f=>({frontmatter:f.path===note?meta:sourceMeta})},workspace:{openLinkText:async(...args)=>calls.push(args)}};
  return {app,files,calls};
 }
 test('all nine compiled economics folders resolve and open; personal and secrets stay excluded',async()=>{
@@ -19,7 +47,7 @@ test('no stored original is inferred from title, DOI, source mode or neighbourin
  for(const m of [{},{source_mode:'local'},{raw_path:'raw/missing.pdf'},{raw_path:'raw/a.txt'},{raw_path:'economy_wiki/raw/a.pdf'}]){const {app}=fixture({sources:[source],raw_path:'raw/a.pdf',doi:'10.1234/example'},m);const actions=await resolvePaperActions(app,{path:note});assert.ok(actions.some(a=>a.kind==='source'));assert.ok(!actions.some(a=>a.kind==='pdf'))}
 });
 test('legacy source links in body and bracket lists resolve without source_mode',async()=>{
- for(const paper of [{path:note,raw:`---\nsources: [economy_wiki/Sources/a]\n---\n# A`},{path:note,raw:`# A\nSources: [[economy_wiki/Sources/a|Original record]]`}]){const {app}=fixture();delete app.metadataCache;app.vault.cachedRead=async()=>`---\nraw_path: raw/a.pdf\n---\n# Source`;const actions=await resolvePaperActions(app,paper);assert.ok(actions.some(a=>a.target===source));assert.ok(actions.some(a=>a.target===pdf))}
+ for(const paper of [{path:note,raw:`---\nsources: [economy_wiki/Sources/a]\n---\n# A`},{path:note,raw:`# A\nSources: [[economy_wiki/Sources/a|Original record]]`}]){const {app}=fixture();delete app.metadataCache;app.vault.read=async f=>f.path===note?paper.raw:`---\nraw_path: raw/a.pdf\n---\n# Source`;const actions=await resolvePaperActions(app,paper);assert.ok(actions.some(a=>a.target===source));assert.ok(actions.some(a=>a.target===pdf))}
 });
 test('unsafe local paths and arbitrary action types never reach openLinkText',async()=>{
  const attacks=['raw/../a.pdf','raw/private/a.pdf','raw/.private/a.pdf','raw/%2e%2e/a.pdf','raw/a.pdf#x','raw/a.pdf?x','raw/a\\b.pdf','/etc/a.pdf','file:///etc/a.pdf','raw//a.pdf','raw/./a.pdf','raw/a.pdf\u0000','raw/../../private/a.pdf'];

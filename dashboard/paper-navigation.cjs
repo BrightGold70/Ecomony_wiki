@@ -6,7 +6,8 @@ function paperFrontmatter(raw){
  const front=(String(raw||'').match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)||[])[1]||'';
  const scalar=s=>{s=s.trim();if(s.startsWith('"')){try{return JSON.parse(s.replace(/\s+#.*$/,''))}catch{return ''}}if(s.startsWith("'"))return s.replace(/^'|'(?:\s+#.*)?$/g,'').replace(/''/g,"'");return s.replace(/\s+#.*$/,'').trim()};
  const out=Object.create(null);let key='';
- for(const line of front.split(/\r?\n/)){const pair=line.match(/^([a-z_][\w-]*):\s*(.*)$/i);if(pair){key=pair[1];const value=pair[2].trim();out[key]=key==='sources'?(value.startsWith('[')?value.replace(/^\[|\](?:\s+#.*)?$/g,'').split(',').map(scalar):[]):scalar(value);continue}const item=line.match(/^\s+-\s+(.*)$/);if(item&&key==='sources')out.sources.push(scalar(item[1]))}
+ for(const line of front.split(/\r?\n/)){const pair=line.match(/^([a-z_][\w-]*):\s*(.*)$/i);if(pair){key=pair[1];const value=pair[2].trim();out[key]=['sources','related_versions'].includes(key)?(value.startsWith('[')?value.replace(/^\[|\](?:\s+#.*)?$/g,'').split(',').map(scalar):[]):scalar(value);continue}const item=line.match(/^\s+-\s+(.*)$/);if(item&&['sources','related_versions'].includes(key))out[key].push(scalar(item[1]))}
+ const loc=front.match(/^evidence_locators:[ \t]*(.*)$/m);if(loc){let items=[];if(loc[1].trim()){try{const parsed=JSON.parse(loc[1]);if(Array.isArray(parsed))items=parsed}catch{}}else{const block=front.slice(loc.index+loc[0].length).split(/\r?\n(?=\S)/)[0];let item;for(const line of block.split(/\r?\n/)){const pair=line.match(/^\s+(-\s+)?(source_path|locator|pdf_page|pdf_page_verified):\s*(.*)$/);if(!pair)continue;if(pair[1]){item={};items.push(item)}if(item){const v=pair[3].trim();item[pair[2]]=pair[2]==='pdf_page'&&/^[1-9]\d*$/.test(v)?Number(v):pair[2]==='pdf_page_verified'&&v==='true'?true:scalar(v)}}}out.evidence_locators=items;}
  return out;
 }
 // Never normalize untrusted paths: reject traversal, link syntax and hidden/private folders.
@@ -33,30 +34,33 @@ function paperURL(value,isDOI=false){
  if(!/^https?:\/\//i.test(target))return null;
  try{const url=new URL(target);if(!url.hostname||url.username||url.password)return null;return target}catch{return null}
 }
-async function paperMetadata(app,file,raw){
- const cached=app.metadataCache?.getFileCache?.(file)?.frontmatter;
- return cached||paperFrontmatter(raw??await app.vault.cachedRead(file));
+async function paperText(app,file){
+ // Read current bytes only, after path/filesystem verification. Caches and
+ // indexed paper.raw must never authorize a recorded PDF-page confirmation.
+ try{return await app.vault.read(file)}catch{return ''}
 }
+function recordedLocators(metadata){return (Array.isArray(metadata?.evidence_locators)?metadata.evidence_locators:[]).filter(e=>e&&typeof e==='object'&&safePaperPath(e.source_path,'Sources','.md')&&typeof e.locator==='string'&&e.locator.trim()&&e.locator.length<=1000).map(e=>({sourcePath:e.source_path,locator:e.locator,page:Number.isSafeInteger(e.pdf_page)&&e.pdf_page>0&&e.pdf_page_verified===true?e.pdf_page:null}))}
 async function resolvePaperActions(app,paper){
  if(!COMPILED_PAPER_FOLDERS.some(f=>safePaperPath(paper.path,f,'.md')))return [];
  const wiki=await verifiedPaperFile(app,paper.path);if(!wiki)return [];
  const actions=[{label:'Open wiki note',kind:'wiki',target:paper.path}],seen=new Set();
  const add=(label,kind,target)=>{if(target&&!seen.has(kind+target)){seen.add(kind+target);actions.push({label,kind,target})}};
- const metadata=await paperMetadata(app,wiki,paper.raw);
+ const text=await paperText(app,wiki),metadata=paperFrontmatter(text);
  const urls=m=>{add('Open publisher/source URL','external',paperURL(m.source_url));add('Open DOI','external',paperURL(m.doi,true))};urls(metadata);
  const sources=Array.isArray(metadata.sources)?metadata.sources:[];
- const links=[...(paper.raw||'').matchAll(/\[\[(economy_wiki\/Sources\/[^\]|#]+)(?:[^\]]*)\]\]/g)].map(m=>m[1]);
+ const links=[...text.matchAll(/\[\[(economy_wiki\/Sources\/[^\]|#]+)(?:[^\]]*)\]\]/g)].map(m=>m[1]);
  for(let target of [...sources,...links]){
   if(typeof target!=='string')continue;target=target.replace(/^\[\[([^\]|#]+)(?:[^\]]*)\]\]$/,'$1');if(!target.endsWith('.md'))target+='.md';
   if(!safePaperPath(target,'Sources','.md'))continue;const file=await verifiedPaperFile(app,target);if(!file)continue;
-  add('Open source record','source',target);const m=await paperMetadata(app,file);urls(m);
+  add('Open source record','source',target);const m=paperFrontmatter(await paperText(app,file));urls(m);
   if(typeof m.raw_path!=='string'||!m.raw_path.startsWith('raw/'))continue;
   const raw='economy_wiki/'+m.raw_path;
-  if(safePaperPath(raw,'raw','.pdf')&&await verifiedPaperFile(app,raw))add('Open stored original PDF','pdf',raw);
+  if(safePaperPath(raw,'raw','.pdf')&&await verifiedPaperFile(app,raw)){add('Open stored original PDF','pdf',raw);for(const e of recordedLocators(metadata).filter(e=>e.sourcePath===target&&e.page!==null))actions.push({label:'Open recorded PDF page '+e.page+' — '+e.locator,kind:'pdf-page',target:raw,page:e.page,locator:e.locator,notePath:paper.path,sourcePath:target})}
  }
  return actions;
 }
 async function openPaperAction(app,action,external){
+ if(action.kind==='pdf-page'){if(!Number.isSafeInteger(action.page)||action.page<1||!safePaperPath(action.target,'raw','.pdf'))return false;const current=await resolvePaperActions(app,{path:action.notePath});if(!current.some(a=>a.kind==='pdf-page'&&['target','page','locator','sourcePath'].every(k=>a[k]===action[k])))return false;await app.workspace.openLinkText(action.target+'#page='+action.page,'','split');return true}
  if(action.kind==='external'){
   if(!paperURL(action.target))return false;
   if(external)await external(action.target);
@@ -68,4 +72,4 @@ async function openPaperAction(app,action,external){
  // Obsidian Workspace.openLinkText accepts PaneType | boolean; 'split' retains the dashboard.
  await app.workspace.openLinkText(action.target,'','split');return true;
 }
-module.exports={resolvePaperActions,openPaperAction};
+module.exports={resolvePaperActions,openPaperAction,paperFrontmatter,recordedLocators};
