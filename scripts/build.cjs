@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
-const modules={'keyword-search.cjs':'searchNotes,safeNotePath,paperDetails','dashboard-core.cjs':'buildIndex,relatedStudies,relationships','enhancements.cjs':'enhancedSearch,typedRelationships,reviewInbox,evidenceAnswer','evidence-lifecycle.cjs':'validateClaim,assessDependencies,hashContent,createReview,verifyReview','deep-search.cjs':'deepSearch','paper-navigation.cjs':'resolvePaperActions,openPaperAction'};
+const modules={'keyword-search.cjs':'searchNotes,safeNotePath,paperDetails','dashboard-core.cjs':'buildIndex,relatedStudies,relationships','enhancements.cjs':'enhancedSearch,typedRelationships,reviewInbox,evidenceAnswer','evidence-lifecycle.cjs':'validateClaim,assessDependencies,hashContent,createReview,verifyReview','deep-search.cjs':'deepSearch','paper-navigation.cjs':'resolvePaperActions,openPaperAction','entity-navigation.cjs':'ENTITY_FIELDS,validateEntities,entityMatches,entitySuggestions'};
 let main=fs.readFileSync(path.join(root,'dashboard/keyword-main.js'),'utf8');
 for(const [file,names]of Object.entries(modules)){
  const body=fs.readFileSync(path.join(root,'dashboard',file),'utf8').replace(/^const\s+\{[^\n]+\}\s*=\s*require\(['"]\.\/[^\n]+\);?\s*$/gm,'').replace(/^module\.exports\s*=.*;?\s*$/gm,'');

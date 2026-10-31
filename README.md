@@ -51,6 +51,7 @@ Use different, deliberately chosen new absolute folders for the synthetic demo a
 ## More routes
 
 - [Folder intake](docs/FOLDER_INTAKE.md) · [한국어](docs/FOLDER_INTAKE_KO.md): preview → verified copies → linked drafts → quoted additive AI proposals. Existing Topic revision remains a separate authorized task.
+- [Personal research entities](docs/entity-personalization.md): choose ordered metadata field/value shortcuts with your own labels; empty by default. Remove hides buttons, never evidence.
 - [Paper/source/original navigation](docs/PAPER_NAVIGATION.md): graph and related-document opening, including explicit linked-only view.
 - [Agent contract](docs/AGENT_RUN_CONTRACT.md) · [maintenance](docs/MAINTENANCE.md) · [acceptance and limits](docs/ACCEPTANCE.md).
 
