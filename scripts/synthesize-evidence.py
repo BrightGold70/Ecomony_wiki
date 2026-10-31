@@ -198,17 +198,86 @@ def command(provider, model, timeout):
             '--max-turns', '1', '--source', 'tool']
 
 
+def bounded_communicate(proc, prompt, timeout):
+    """Drain real pipes incrementally with a combined byte ceiling and deadline."""
+    import io
+    import selectors
+    import time
+    # Alternate in-memory transports retain the communicate interface.
+    if not isinstance(proc.stdout, io.IOBase):
+        return proc.communicate(prompt, timeout=timeout)
+    selector = selectors.DefaultSelector()
+    output = bytearray()
+    pending = memoryview(prompt.encode('utf-8'))
+    total = 0
+    deadline = time.monotonic() + timeout
+    try:
+        for stream in (proc.stdin, proc.stdout, proc.stderr):
+            os.set_blocking(stream.fileno(), False)
+        selector.register(proc.stdin, selectors.EVENT_WRITE, 'input')
+        selector.register(proc.stdout, selectors.EVENT_READ, 'output')
+        selector.register(proc.stderr, selectors.EVENT_READ, 'diagnostic')
+        while selector.get_map():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(proc.args, timeout)
+            for key, _ in selector.select(remaining):
+                if key.data == 'input':
+                    written = os.write(key.fd, pending[:8192])
+                    pending = pending[written:]
+                    if not pending:
+                        selector.unregister(key.fileobj)
+                        proc.stdin.close()
+                else:
+                    chunk = os.read(key.fd, 8192)
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                        continue
+                    total += len(chunk)
+                    require(total <= MAX_OUTPUT, 'provider output too large')
+                    if key.data == 'output':
+                        output.extend(chunk)
+        proc.wait(timeout=max(0.01, deadline - time.monotonic()))
+        return output.decode('utf-8'), ''
+    except BaseException:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+        raise
+    finally:
+        selector.close()
+        for stream in (proc.stdin, proc.stdout, proc.stderr):
+            stream.close()
+
+
 def invoke(prompt, provider, model, timeout):
     # No shell, source strings in stdin only, no credentials read/printed by this adapter.
     proc = subprocess.Popen(command(provider, model, timeout), stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, encoding='utf-8', start_new_session=True, cwd=ROOT)
+    def cancelled(signum, frame):
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        raise Rejected('operation cancelled')
+    previous = {s: signal.getsignal(s) for s in (signal.SIGTERM, signal.SIGINT)}
+    for sig in previous:
+        signal.signal(sig, cancelled)
     try:
-        stdout, _ = proc.communicate(prompt, timeout=timeout)
+        stdout, _ = bounded_communicate(proc, prompt, timeout)
     except subprocess.TimeoutExpired:
-        os.killpg(proc.pid, signal.SIGKILL)
-        proc.communicate()
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
         raise Rejected('provider timeout') from None
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
     require(proc.returncode == 0, 'provider subprocess failed (diagnostics suppressed)')
     require(len(stdout.encode()) <= MAX_OUTPUT, 'provider output too large')
     # Installed Hermes emits this exact diagnostic for an unresolved empty toolset.

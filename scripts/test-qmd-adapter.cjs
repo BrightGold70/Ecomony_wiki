@@ -50,6 +50,12 @@ test('bounded runner kills a timed out process and limits output without a shell
   assert.equal(result.stdout.trim(), '$(touch nope)');
 });
 
+test('cancelling adapter propagates to detached QMD children and removes signal handlers',async()=>{
+ const {runBounded}=require(adapterPath),before=process.listenerCount('SIGTERM');
+ const pending=runBounded(process.execPath,['-e','setInterval(()=>{},1000)'],{timeoutMs:2000});
+ assert.equal(process.listenerCount('SIGTERM'),before+1);process.emit('SIGTERM');await assert.rejects(pending,/cancelled/);assert.equal(process.listenerCount('SIGTERM'),before);
+});
+
 test('QMD root override is explicit, argument wins, and Node uses the current executable', () => {
   const { commandPlan } = require(adapterPath);
   const previous = process.env.ECONOMY_QMD_ROOT;

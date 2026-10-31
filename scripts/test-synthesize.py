@@ -59,6 +59,52 @@ class SynthesisTests(unittest.TestCase):
         with self.assertRaises(self.backend.Rejected):
             self.backend.validate_input(self.payload, self.root)
 
+    def test_cancel_signal_kills_detached_provider_and_restores_handlers(self):
+        import signal
+        from unittest.mock import Mock
+        proc = Mock(pid=987654)
+        def interrupted(*args, **kwargs):
+            handler = signal.getsignal(signal.SIGTERM)
+            self.assertTrue(callable(handler), 'bridge must catch cancellation')
+            if callable(handler):
+                handler(signal.SIGTERM, None)
+        proc.communicate.side_effect = interrupted
+        previous = signal.getsignal(signal.SIGTERM)
+        with patch.object(self.backend.subprocess, 'Popen', return_value=proc), patch.object(self.backend.os, 'killpg') as kill:
+            with self.assertRaisesRegex(self.backend.Rejected, 'operation cancelled'):
+                self.backend.invoke('synthetic', 'approved', 'model', 15)
+            kill.assert_called_with(proc.pid, signal.SIGKILL)
+        self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
+
+    def test_provider_stream_is_bounded_before_collecting_all_output(self):
+        import subprocess
+        proc = subprocess.Popen([sys.executable, '-c', "import sys; sys.stdout.write('x'*400000); sys.stdout.flush()"],
+                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                start_new_session=True)
+        try:
+            with self.assertRaisesRegex(self.backend.Rejected, 'provider output too large'):
+                self.backend.bounded_communicate(proc, 'synthetic', 5)
+        finally:
+            proc.kill()
+            proc.wait()
+
+    def test_real_local_pipe_success_and_timeout_cleanup(self):
+        import subprocess
+        for code, timeout in [("import sys; print(sys.stdin.read()); print('diagnostic',file=sys.stderr)", 5),
+                              ("import time; time.sleep(5)", 0.05)]:
+            with self.subTest(timeout=timeout):
+                proc = subprocess.Popen([sys.executable, '-c', code], stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+                if timeout < 1:
+                    with self.assertRaises(subprocess.TimeoutExpired):
+                        self.backend.bounded_communicate(proc, 'synthetic', timeout)
+                    self.assertIsNotNone(proc.poll())
+                else:
+                    stdout, stderr = self.backend.bounded_communicate(proc, 'synthetic', timeout)
+                    self.assertEqual(stdout, 'synthetic\n')
+                    self.assertEqual(stderr, '')
+                self.assertTrue(all(s is not None and s.closed for s in (proc.stdin, proc.stdout, proc.stderr)))
+
     def test_exact_grounded_selection(self):
         b = self.backend
         self.assertEqual(b.validate_input(self.payload, self.root), self.payload)

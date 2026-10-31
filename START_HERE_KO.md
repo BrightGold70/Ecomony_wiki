@@ -56,6 +56,6 @@ node scripts/first-wiki-demo.cjs --output ABSOLUTE_NEW_FOLDER
 
 - **기본:** Node.js 22+, 저장소 취득·갱신용 Git, 대시보드용 Obsidian 데스크톱. 기본 로컬 검색에는 npm 패키지 의존성이나 AI 키가 필요하지 않습니다.
 - **전체 테스트·Python 도구:** 실제 작동하는 Python 3.10+가 필요합니다. 설치되어도 실행 불가한 인터프리터는 준비 완료가 아닙니다. doctor는 기본 준비 상태와 별도로 점검합니다.
-- **선택:** 텍스트 PDF용 Poppler `pdftotext`, 의미 검색용 QMD·로컬 모델, 선택형 종합 도구용 인증된 Hermes·승인된 제공자. 현재 화면은 로컬 근거 모드이며 별도로 쓰는 AI 담당자가 자동으로 서비스 설정이 되지는 않습니다.
+- **선택:** 텍스트 PDF용 Poppler `pdftotext`, 의미 검색용 QMD·로컬 모델, 화면 내 종합용 인증된 Hermes·명시적 제공자·모델·Python 설정. Semantic은 로컬 의미 검색만 실행합니다. Generate는 정확한 전송 내용 미리보기와 매번 새 전송 동의가 필요합니다. Ask this collection은 로컬 근거 모드이며 별도 AI 담당자가 자동으로 서비스 설정이 되지는 않습니다. 활성화 전 선택 서비스 안내를 읽으세요.
 
 [설치](docs/FROM_SCRATCH.md), [폴더 처리](docs/FOLDER_INTAKE_KO.md), [선택 서비스](docs/OPTIONAL_SERVICES.md)를 참고하세요. 테스트·lint·합성 시연은 실제 인용·인과 식별·경제학자 승인을 입증하지 않습니다. 이 문서를 읽는 것만으로 운영 보관함·정기 실행·외부 서비스가 활성화되지 않습니다. 한국어 안내는 프로그램 화면 전체의 번역을 뜻하지 않습니다.

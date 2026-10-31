@@ -37,7 +37,30 @@ A successful bridge probe is not native snapshot verification. Do not claim the 
 
 The implemented Python bridge uses authenticated Hermes and an explicit approved provider/model, with Python 3.10+. The provider receives the selected question, note paths/titles and passages; costs and normal provider/Hermes session retention may apply. Preview the actual content and obtain deliberate permission. A local mirror is not permission for cloud transmission. Treat restricted metadata as confidential too.
 
-The current dashboard is local evidence mode and does not itself invoke providers; the optional bridge is a separately authorized technical-helper command. Its current CLI requires `--vault-root` (the parent vault), `--provider` and `--model`, accepts `--mode extractive|draft-synthesis`, and reads selected evidence JSON on stdin. Run its `--help` using the working Python reported by the doctor. `PYTHON` selects the full-test runtime; it is not a provider credential. Configure only the actual supported runtime settings after inspecting the installed tool/current UI. A command described in documentation is not an installed service or authenticated account. No provider/model defaults should silently substitute for the user's chosen boundary. Verify actual execution receipts and citations; unavailable/stale receipt verification must not be described as a successful verified synthesis. Provider output remains `economist-review-needed` and cannot establish causal identification or independent reproduction.
+The dashboard can invoke the bridge only after explicit local configuration, an exact payload preview and per-preview transmission permission. Basic keyword search and Ask this collection remain local and do not invoke providers. The bridge CLI requires `--vault-root` (the parent vault), `--provider` and `--model`, accepts `--mode extractive|draft-synthesis`, and reads selected evidence JSON on stdin. Run its `--help` using the working Python reported by the doctor. `PYTHON` selects the full-test runtime, not the dashboard interpreter or provider credentials. No provider/model defaults silently substitute for the user's chosen boundary. Verify actual execution receipts and citations; unavailable/stale verification must not be called successful verified synthesis. Output remains `economist-review-needed` and cannot establish causal identification or independent reproduction.
+
+## Dashboard configuration and use
+
+After separate installation/authentication permission, configure the deployed plugin's local `data.json` (never commit personal configuration). The keys below are examples, not a configured installation; use discovered, approved absolute paths and merge without overwriting other settings:
+
+```json
+{
+  "repositoryPath": "/absolute/checkout/Ecomony_wiki",
+  "nodeExecutable": "/absolute/bin/node",
+  "economyQmdRoot": "/absolute/private-qmd-runtime",
+  "pythonExecutable": "/absolute/bin/python3",
+  "provider": "approved-provider",
+  "model": "approved-model"
+}
+```
+
+QMD requires the first three keys; synthesis requires repositoryPath, pythonExecutable, provider and model. Missing settings fail closed with no process started; no guessed provider, model or executable is substituted. The bridge uses the authenticated Hermes executable discoverable in the app's environment. Restart/reopen the dashboard after settings changes; recheck the displayed provider/model and preview before allowing transmission. Do not put credentials in plugin data. No settings UI or automatic setup is implied.
+
+**Semantic** by the main keyword box opens the lower question row and starts local search only. **Semantic / LLM services** opens without executing. The row contains question, method and Run semantic search. Methods are fast, rerank and expanded; additional local model work is explicit. Rebuild semantic index changes the isolated local mirror/index, not wiki evidence. QMD is invoked with `--vault PARENT/economy_wiki --tool-root economyQmdRoot`, never native snapshot flags. Active metadata filters constrain displayed results and synthesis candidates, not the index's overall allowlist. Stale/busy errors give safe rebuild/wait guidance; do not delete locks manually.
+
+**Preview synthesis evidence** uses selected notes within active filters, or local BM25/graph candidates if nothing is selected. It previews at most six exact initial excerpts of 7,000 characters each, including structured economics fields, safe existing wiki/source/PDF navigation and exact payload JSON (question, paths, titles, text). Missing sections stay explicit. Excerpts are partial, not full-paper appraisals. The full UTF-8 payload must fit 65,536 bytes. Only Generate transmits this payload after the checkbox; opening a preview never calls a provider. No PDF bytes, raw sources or unrelated folders are sent. Controls stay above previews/results.
+
+Question, selection, method, filter, refresh, reset, replacement-panel and close events invalidate or close the session, cancel active work and require a new preview/permission before another transmission. Late output cannot replace a newer session. Cancel kills the subprocess group on supported POSIX systems (child only on Windows); it cannot retract a request already received by a provider or undo partial local indexing. Rebuild after interrupted index work if needed. Query/synthesis timeout is four minutes; rebuild is twelve minutes. Combined dashboard-child stdout/stderr is capped at 2,000,000 bytes; the Python bridge additionally drains provider stdout/stderr incrementally with a combined 262,144-byte limit and a 120-second default provider deadline. Diagnostics are suppressed. Cancellation sends TERM first so the QMD/Python bridges can terminate their detached children, with a 1.5-second KILL fallback for the dashboard child group. Results are capped at 100 rendered candidates. No generated draft is automatically saved or approved. These are code/test guarantees, not a claim of live model/provider or native desktop acceptance; validate those only with separately authorized real runs.
 
 ## Monitoring and other integrations
 
@@ -51,6 +74,6 @@ Publication monitoring checks named sources only and does not guarantee notice/r
 
 텍스트 PDF 처리에는 선택적으로 Poppler `pdftotext`를 사용합니다. 스캔은 별도 OCR이 필요하며 추출은 표·수식·전체 평가의 검증이 아닙니다. QMD는 별도 실행 파일·모델·허용된 연구 노트만의 색인이 필요합니다. 원자료·개인 보관함 전체를 색인하지 말고 미설정이면 기본 검색을 쓰세요.
 
-현재 화면은 로컬 근거 모드이며 제공자를 직접 호출하지 않습니다. 선택형 Python 종합 도구는 담당자가 별도 실행하며 Python 3.10+, 인증된 Hermes, 명시한 제공자·모델과 전송 미리보기·허가가 필요합니다. 질문·노트 경로·제목·발췌문이 전송되며 비용·보관이 발생할 수 있습니다. 제한된 메타데이터도 보호하세요. 실제 실행·영수증 검증 없이 성공을 주장하지 말고 결과는 `economist-review-needed`로 둡니다. 자동 수집·예약·외부 데이터 연결·백업은 별도 작업입니다.
+기본 검색과 Ask this collection은 로컬 근거 모드입니다. 선택형 화면 내 Python 종합에는 Python 3.10+, 인증된 Hermes, 명시한 제공자·모델·실행 경로, 정확한 전송 미리보기와 매번 새 동의가 필요합니다. Semantic은 로컬 검색만 실행하며 Generate만 질문·노트 경로·제목·발췌문을 전송합니다. 최대 6개 노트의 각 7,000자, 전체 UTF-8 JSON 65,536바이트 한도입니다. 비용·보관이 발생할 수 있으며 제한된 메타데이터도 보호하세요. 질문·선택·필터·새로고침·다른 화면·닫기는 미리보기 또는 세션을 무효화합니다. Cancel은 작업을 종료하지만 이미 보낸 내용을 회수할 수 없습니다. 검색·종합 4분, 재색인 12분 제한과 출력 2,000,000바이트 제한을 적용합니다. 설정 키와 절대 경로 예시는 위 Dashboard configuration and use를 따르며 비밀번호는 저장하지 않습니다. 실제 실행·영수증 검증 없이 성공을 주장하지 말고 결과는 `economist-review-needed`로 둡니다. 자동 저장·승인·수집·예약·외부 데이터 연결·백업은 별도 작업입니다.
 
 QMD의 `--vault`는 부모가 아닌 `economy_wiki` 폴더이고 `--tool-root` 또는 `ECONOMY_QMD_ROOT`에 격리된 정확한 `@tobilu/qmd` `2.8.3` 설치가 필요합니다. 현재 어댑터는 허용된 파일시스템 사본을 읽으며 Obsidian 네이티브 스냅샷 기능이 아닙니다. 선택형 `scripts/obsidian-cli.cjs`는 공식 CLI의 비동기 eval 대기를 돕지만 권한·앱·제공자를 설정하지 않습니다. 실행 파일은 필요하면 `OBSIDIAN_CLI_BINARY`로 지정합니다. 실제 보관함 연결과 CLI/eval 권한은 별도 확인하며 기본 검색 때문에 임의로 켜지 않습니다. Python 도구는 부모 보관함의 `--vault-root`, 명시적 `--provider`·`--model`과 표준입력 근거 JSON을 사용합니다. 전체 테스트용 인터프리터는 `PYTHON`으로 고를 수 있습니다.

@@ -28,9 +28,9 @@ Every Source summary explains question, mechanism, data/sample, identification (
 | Full tests / Python tools | Working Python 3.10+; check with doctor |
 | PDF extraction | Optional Poppler `pdftotext`; scanned PDFs need separately authorized OCR |
 | Semantic search | Optional QMD executable, local models and scoped index |
-| Provider synthesis tool | Optional Python + authenticated Hermes, explicit provider/model and previewed permission; current dashboard stays local evidence mode |
+| Provider synthesis | Optional Python + authenticated Hermes, explicit provider/model, exact payload preview and per-preview transmission permission in the dashboard |
 
-A separate AI helper is not automatically configured as a synthesis service; the current dashboard does not invoke providers. [Optional service boundaries](docs/OPTIONAL_SERVICES.md) explain what remains not configured.
+A separate AI helper is not automatically configured as a synthesis service. **Semantic** starts configured local QMD search only; **Semantic / LLM services** opens question/method controls and an opt-in synthesis preview. Generate requires explicit provider/model/Python configuration and fresh permission for the displayed payload. Basic search and Ask this collection remain local. [Optional service boundaries](docs/OPTIONAL_SERVICES.md) explain configuration, limits and what remains unverified.
 
 ## Technical helper quick start
 

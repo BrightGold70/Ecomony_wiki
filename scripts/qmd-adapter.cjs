@@ -88,15 +88,18 @@ function runBounded(executable, args, { timeoutMs = 120000, maxBytes = 8 * 1024 
     const child = spawn(executable, args, { shell: false, env, cwd, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '', stderr = '', bytes = 0, failure;
     const kill = () => { try { if (process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL'); else child.kill('SIGKILL'); } catch {} };
+    const cancel = () => { failure = new Error('operation cancelled'); kill(); };
+    const cleanup = () => { clearTimeout(timer); process.removeListener('SIGTERM', cancel); process.removeListener('SIGINT', cancel); };
+    process.on('SIGTERM', cancel); process.on('SIGINT', cancel);
     const timer = setTimeout(() => { failure = new Error('QMD timed out'); kill(); }, timeoutMs);
     for (const [stream, isOut] of [[child.stdout, true], [child.stderr, false]]) stream.on('data', chunk => {
       bytes += chunk.length;
       if (bytes > maxBytes) { failure = new Error('QMD output limit exceeded'); kill(); return; }
       if (isOut) stdout += chunk.toString(); else stderr += chunk.toString();
     });
-    child.once('error', error => { clearTimeout(timer); reject(error); });
+    child.once('error', error => { cleanup(); reject(error); });
     child.once('close', (code, signal) => {
-      clearTimeout(timer);
+      cleanup();
       if (failure) reject(failure);
       else if (code !== 0) reject(new Error(`QMD exited ${code ?? signal}: ${stderr.slice(-4000)}`));
       else resolve({ stdout, stderr, code });

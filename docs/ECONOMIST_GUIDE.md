@@ -30,7 +30,9 @@ Use the comparison selection under result cards and **Compare selected** for sid
 
 Use **Graphical paper links** to inspect recorded links and suggested similarities. Similarity is not agreement, causality or independent replication. A country/product record or research note can be navigational knowledge without being empirical evidence.
 
-Optional semantic search requires local models and index setup. The current dashboard stays local evidence mode; separately invoked provider-written synthesis requires a preview and deliberate external call. Never include confidential excerpts unless explicitly authorized. Citation checks do not establish entailment or econometric validity.
+Optional semantic search requires local models and index setup. **Semantic** beside the main search runs local semantic retrieval with the current question; **Semantic / LLM services** opens controls without starting work. Choose the method and Run semantic search in the question row. Controls stay above results. Semantic results honor active metadata filters; the index itself covers the allowed compiled folders, not only those filters.
+
+For provider synthesis, select comparison notes (or preview locally retrieved candidates), click **Preview synthesis evidence**, inspect structured economics fields, exact excerpts and the full question/path/title/text payload, then check transmission permission and click **Generate grounded draft — provider call**. Explicit provider/model/Python settings are required. Costs and session retention can apply. Question, selection, filters, refresh or panel changes invalidate permission; preview again. Cancel stops the process tree and ignores late output; it cannot undo content already sent. No generated note is saved automatically. Ask this collection still returns local extracts only. Never send confidential excerpts without authorization. Citation checks do not establish entailment, causal identification or econometric validity. See [configuration and limits](OPTIONAL_SERVICES.md#dashboard-configuration-and-use).
 
 ## 4. Add every new article through a repeatable request
 

@@ -1,0 +1,74 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{createRequire}=require('node:module'),{EventEmitter}=require('node:events');
+class Element{
+ constructor(tag,opts={},parent=null){this.tag=tag;this.text=opts.text||'';this.value=opts.value||'';this.parent=parent;this.children=[];this.style={};this.events={};this.attrs={}}
+ createEl(tag,opts){const e=new Element(tag,opts,this);this.children.push(e);return e}createDiv(){return this.createEl('div')}empty(){this.children=[]}setText(v){this.text=v}setAttribute(k,v){this.attrs[k]=v}addEventListener(k,v){this.events[k]=v}appendText(t){this.text+=t}focus(){}scrollIntoView(){}all(){return [this,...this.children.flatMap(c=>c.all())]}
+}
+const repo=path.resolve(__dirname,'..'),localRequire=createRequire(path.join(__dirname,'keyword-main.js'));
+async function setup(config={},timers={}){
+ const calls=[],registered=[];class Plugin{registerView(k,f){registered.push(f)}addCommand(){}addRibbonIcon(){}registerObsidianProtocolHandler(){}async loadData(){return config}}class ItemView{constructor(leaf){Object.assign(this,leaf)}}
+ const spawn=(command,args,opts)=>{const child=new EventEmitter();child.stdout=new EventEmitter();child.stderr=new EventEmitter();child.stdin=new EventEmitter();child.stdin.end=data=>{child.payload=data};child.kill=()=>{child.killed=true};calls.push({command,args,opts,child});return child};
+ const sandbox={module:{exports:{}},require:n=>n==='obsidian'?{Plugin,ItemView}:n==='node:child_process'?{spawn}:localRequire(n),process,Buffer,TextEncoder,setTimeout:timers.setTimeout||setTimeout,clearTimeout:timers.clearTimeout||clearTimeout};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'keyword-main.js'),'utf8'),sandbox);
+ const plugin=new sandbox.module.exports();await plugin.onload();const root=new Element('root'),view=registered[0]({app:{vault:{adapter:{getBasePath:()=>'/approved/vault'},getMarkdownFiles:()=>[],getFiles:()=>[],getName:()=> 'approved',getAbstractFileByPath:()=>null},workspace:{openLinkText(){}}},contentEl:root});view.selected=new Set();view.filters={};view.index=[];
+ const area=new Element('area');const find=text=>area.all().find(e=>e.text===text);const reply=(data,code=0)=>{const c=calls.at(-1).child;c.stdout.emit('data',JSON.stringify(data));c.emit('close',code)};
+ return {view,area,root,calls,find,reply};
+}
+const configured={repositoryPath:repo,nodeExecutable:'/runtime/node',pythonExecutable:'/runtime/python',economyQmdRoot:'/private/qmd',provider:'approved-provider',model:'approved-model'};
+test('main semantic shortcut is adjacent to the keyword box',async()=>{const h=await setup(configured);await h.view.onOpen();const input=h.root.all().find(e=>e.attrs['aria-label']==='Economics keyword'),button=h.root.all().find(e=>e.text==='Semantic search');assert.ok(button,'shortcut exists');assert.equal(button.parent,input.parent);assert.equal(button.parent.children.indexOf(button),button.parent.children.indexOf(input)+1);});
+test('semantic query uses configured filesystem adapter subtree, question and chosen method',async()=>{
+ const h=await setup(configured);await h.view.showServices(h.area,'employment');assert.equal(h.calls.length,0);const question=h.area.all().find(e=>e.value==='employment'),mode=h.area.all().find(e=>e.attrs['aria-label']==='Semantic search method');assert.ok(mode);mode.value='expanded';const run=h.find('Run semantic search');assert.equal(run.parent,question.parent);assert.equal(mode.parent,question.parent);const pending=run.onclick();assert.equal(h.calls.length,1);assert.equal(h.calls[0].command,'/runtime/node');assert.deepEqual(Array.from(h.calls[0].args),[path.join(repo,'scripts/qmd-adapter.cjs'),'query','--vault','/approved/vault/economy_wiki','--tool-root','/private/qmd','--lex','employment','--vec','employment','--mode','expanded']);h.reply({results:[],mode:'expanded',rerankingValidated:false});await pending;assert.ok(h.area.all().some(e=>/0 results/.test(e.text)));
+});
+test('missing configuration fails visibly without spawning; backend errors are not success',async()=>{
+ const h=await setup({});await h.view.showServices(h.area,'trade');await h.find('Run semantic search').onclick();assert.equal(h.calls.length,0);assert.ok(h.area.all().some(e=>/not configured/i.test(e.text)));
+ const b=await setup(configured);await b.view.showServices(b.area,'trade');const pending=b.find('Run semantic search').onclick();b.reply({error:'sensitive private diagnostic'},1);await pending;assert.ok(b.area.all().some(e=>/Backend failed/.test(e.text)));assert.ok(!b.area.all().some(e=>/sensitive private/.test(e.text)));
+});
+test('preview cards preserve exact payload, explicit permission gates configured provider and controls precede results',async()=>{
+ const h=await setup(configured),raw='---\nestimand: ATT\nidentification_strategy: DiD\n---\n# Trade\n## Scope and design\nPanel sample\n## Reported findings\nEstimate 2\n## Limitations\nSelection bias\n';h.view.index=[{path:'economy_wiki/Policies/a.md',title:'Trade',raw}];h.view.selected.add(h.view.index[0].path);await h.view.showServices(h.area,'trade');await h.find('Preview synthesis evidence').onclick();const exact=h.area.all().find(e=>e.tag==='pre'&&e.text===raw);assert.ok(exact);for(const text of ['ATT','DiD','Panel sample','Estimate 2','Selection bias'])assert.ok(h.area.all().some(e=>e.text===text),text);assert.ok(h.area.all().some(e=>e.attrs['aria-label']==='Paper navigation: Trade'));const gen=h.find('Generate grounded draft — provider call'),permission=h.area.all().find(e=>e.attrs['aria-label']==='Allow selected evidence transmission');assert.ok(gen.disabled);await gen.onclick();assert.equal(h.calls.length,0);permission.checked=true;permission.onchange();assert.equal(gen.disabled,false);const pending=gen.onclick();assert.equal(h.calls[0].command,'/runtime/python');assert.deepEqual(JSON.parse(h.calls[0].child.payload),{question:'trade',evidence:[{path:h.view.index[0].path,title:'Trade',text:raw}]});const args=h.calls[0].args;for(const x of ['--provider','approved-provider','--model','approved-model','--vault-root','/approved/vault','draft-synthesis'])assert.ok(args.includes(x),x);assert.ok(!args.includes('--vault-name'));h.reply({answer:'Insufficient selected evidence.',citations:[],gaps:['selected-passages-only'],review_status:'economist-review-needed'});await pending;assert.ok(h.area.all().some(e=>/economist-review-needed/.test(e.text)));const all=h.area.all();for(const label of ['Preview synthesis evidence','Generate grounded draft — provider call','Rebuild semantic index','Cancel active service operation'])assert.ok(all.indexOf(h.find(label))<all.indexOf(exact));
+ const missing=await setup({...configured,provider:undefined});missing.view.index=h.view.index;missing.view.selected.add(h.view.index[0].path);await missing.view.showServices(missing.area,'trade');await missing.find('Preview synthesis evidence').onclick();await missing.find('Generate grounded draft — provider call').onclick();assert.equal(missing.calls.length,0);
+});
+test('cancel, input changes, replacement panel and close kill active work and discard late output',async()=>{
+ for(const action of ['cancel','input','panel','close']){
+  const h=await setup(configured);await h.view.showServices(h.area,'trade');const pending=h.find('Run semantic search').onclick(),child=h.calls[0].child;
+  if(action==='cancel')h.find('Cancel active service operation').onclick();
+  if(action==='input')h.area.all().find(e=>e.value==='trade').oninput();
+  if(action==='panel')h.view.showAsk(h.area,'trade');
+  if(action==='close')await h.view.onClose();
+  assert.equal(child.killed,true,action);child.stdout.emit('data',JSON.stringify({results:[],mode:'LATE',rerankingValidated:false}));child.emit('close',0);await pending;assert.ok(!h.area.all().some(e=>/LATE/.test(e.text)),action);
+ }
+});
+test('timeout, output overflow and pipe errors terminate child with bounded safe errors',async()=>{
+ for(const action of ['timeout','overflow','pipe']){
+  const timers=[];const h=await setup(configured,{setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length},clearTimeout(){}});await h.view.showServices(h.area,'trade');const pending=h.find('Run semantic search').onclick(),child=h.calls[0].child;
+  if(action==='timeout'){assert.equal(timers[0].ms,240000);timers[0].fn()}
+  if(action==='overflow')child.stderr.emit('data','x'.repeat(2000001));
+  if(action==='pipe')child.stdin.emit('error',Error('private diagnostic'));
+  await pending;assert.equal(child.killed,true);assert.ok(h.area.all().some(e=>/timed out|too large|pipe closed/.test(e.text)));assert.ok(!h.area.all().some(e=>/private diagnostic/.test(e.text)));
+ }
+});
+test('preview permission resets on input, selection and metadata changes; stale controls cannot spawn',async()=>{
+ const h=await setup(configured);h.view.index=[{path:'economy_wiki/Policies/a.md',title:'Trade',raw:'# Trade\n## Reported findings\nTrade finding'}];h.view.selected.add(h.view.index[0].path);
+ await h.view.showServices(h.area,'trade');const gen=h.find('Generate grounded draft — provider call'),permission=h.area.all().find(e=>e.attrs['aria-label']==='Allow selected evidence transmission');
+ for(const change of [()=>h.area.all().find(e=>e.value==='trade').oninput(),()=>h.view.selected.clear(),()=>{h.view.filters={country:{value:'Japan'}}}]){h.find('Preview synthesis evidence').onclick();permission.checked=true;permission.onchange();change();await gen.onclick();assert.equal(h.calls.length,0);assert.equal(permission.checked,false)}
+ const oldRun=h.find('Run semantic search');await h.view.showServices(h.area,'new');await oldRun.onclick();assert.equal(h.calls.length,0);
+});
+test('main Semantic shortcut starts only local search and refresh/filter/input/selection invalidate services',async()=>{
+ for(const action of ['refresh','filter','input','selection']){
+  const h=await setup(configured);h.view.readScoped=async()=> '# Trade\n## Reported findings\nTrade';h.view.app.vault.getMarkdownFiles=()=>[{path:'economy_wiki/Policies/a.md'}];await h.view.onOpen();const all=()=>h.root.all(),find=text=>all().find(e=>e.text===text),input=all().find(e=>e.attrs['aria-label']==='Economics keyword');input.value='Trade';await input.events.search();const semantic=find('Semantic search');assert.ok(semantic);const pending=semantic.onclick();await new Promise(resolve=>setImmediate(resolve));assert.equal(h.calls.length,1);const child=h.calls[0].child;
+  if(action==='refresh')await find('Refresh wiki').onclick();if(action==='filter')await all().find(e=>e.attrs['aria-label']==='country filter').events.input();if(action==='input')input.events.input();if(action==='selection')all().find(e=>typeof e.onchange==='function'&&e.parent.text===' Add to comparison').onchange();
+  assert.equal(child.killed,true,action);await pending;await h.view.onClose();
+ }
+});
+test('rebuild uses explicit economy filesystem root and stale backend advice is sanitized',async()=>{
+ const h=await setup(configured);await h.view.showServices(h.area,'trade');const pending=h.find('Rebuild semantic index').onclick();assert.deepEqual(Array.from(h.calls[0].args),[path.join(repo,'scripts/qmd-adapter.cjs'),'build','--vault','/approved/vault/economy_wiki','--tool-root','/private/qmd']);h.reply({error:'Stale result: source changed; rebuild the index /private/secret'},1);await pending;assert.ok(h.area.all().some(e=>/stale or incomplete/.test(e.text)));assert.ok(!h.area.all().some(e=>/private\/secret/.test(e.text)));
+});
+test('provider permission is single-use and oversized multilingual payloads fail closed',async()=>{
+ const h=await setup(configured);h.view.index=Array.from({length:6},(_,i)=>({path:`economy_wiki/Policies/${i}.md`,title:'Trade',raw:'한'.repeat(7000)}));for(const p of h.view.index)h.view.selected.add(p.path);await h.view.showServices(h.area,'trade');h.find('Preview synthesis evidence').onclick();const permission=h.area.all().find(e=>e.attrs['aria-label']==='Allow selected evidence transmission');permission.checked=true;permission.onchange();await h.find('Generate grounded draft — provider call').onclick();assert.equal(h.calls.length,0);
+ h.view.selected=new Set([h.view.index[0].path]);h.find('Preview synthesis evidence').onclick();permission.checked=true;permission.onchange();const pending=h.find('Generate grounded draft — provider call').onclick();assert.equal(permission.checked,false);h.reply({answer:'Insufficient selected evidence.',citations:[],gaps:[],review_status:'economist-review-needed'});await pending;assert.equal(h.find('Generate grounded draft — provider call').disabled,true);
+});
+test('semantic cards only expose existing filtered canonical notes, never backend paths or markup links',async()=>{
+ const h=await setup(configured);h.view.index=[{path:'economy_wiki/Policies/a.md',title:'Approved',raw:'# Approved',country:'Japan'},{path:'economy_wiki/Policies/b.md',title:'Hidden',raw:'# Hidden',country:'UK'}];h.view.filters={country:{value:'Japan'}};h.view.app.vault.getAbstractFileByPath=p=>h.view.index.some(n=>n.path===p)?{path:p,extension:'md'}:null;await h.view.showServices(h.area,'trade');const pending=h.find('Run semantic search').onclick();h.reply({results:[{relativePath:'Policies/a.md',title:'<script>unsafe</script>',snippet:'Exact local snippet'},{relativePath:'Policies/b.md'},{relativePath:'Policies/missing.md'},{relativePath:'../private/secret.md'},{relativePath:'Policies/%2e%2e/secret.md'}],mode:'fast'});await pending;assert.ok(h.area.all().some(e=>e.text==='Approved'));assert.ok(h.area.all().some(e=>e.attrs['aria-label']==='Paper navigation: Approved'));assert.ok(!h.area.all().some(e=>/Hidden|unsafe|secret/.test(e.text)));
+});
+test('late configuration cannot resurrect a replaced services session',async()=>{
+ let release;const config=new Promise(resolve=>release=resolve),h=await setup(config);const pending=h.view.showServices(h.area,'trade');h.view.showAsk(h.area,'local');release(configured);await pending;const run=h.find('Run semantic search');assert.equal(run,undefined);assert.equal(h.calls.length,0);assert.ok(h.area.all().some(e=>/local evidence mode/.test(e.text)));
+});
+module.exports={setup,configured,Element};

@@ -6,7 +6,7 @@ Read [START_HERE](../START_HERE.md), the [economist guide](ECONOMIST_GUIDE.md) a
 
 - **Core:** Git, Node.js 22+; Obsidian desktop for the dashboard. No npm package dependencies or AI key for local keyword search.
 - **Full tests and Python-backed tools:** working Python 3.10+. Both `npm test` and `npm run test:python` can exercise Python; Node alone is not full-suite readiness.
-- **Optional:** Poppler `pdftotext` for text-layer PDFs; QMD/models for semantic search; authenticated Hermes plus approved provider/model for the separate synthesis tool. The current dashboard stays local evidence mode; a separately used AI helper is not automatically a configured provider service.
+- **Optional:** Poppler `pdftotext` for text-layer PDFs; QMD/models for semantic search; authenticated Hermes plus explicit approved provider/model/Python for opt-in dashboard synthesis. Basic search and Ask this collection stay local; Generate requires preview and per-preview permission. A separately used AI helper is not automatically a configured provider service. Configure the local plugin data only after authorization using [OPTIONAL_SERVICES](OPTIONAL_SERVICES.md#dashboard-configuration-and-use).
 
 ```sh
 git clone https://github.com/BrightGold70/Ecomony_wiki.git

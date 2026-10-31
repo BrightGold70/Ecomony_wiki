@@ -58,6 +58,6 @@ and blocked optional features. Do not change repository visibility or licensing.
 
 - **Core:** Node.js 22+, Git to obtain/update the checkout, Obsidian desktop for the dashboard. No npm package dependencies or AI key for basic local search.
 - **Full tests / Python-backed tools:** working Python 3.10+. An installed but broken interpreter is not readiness; the doctor checks this separately from core readiness.
-- **Optional:** Poppler `pdftotext` for text-layer PDFs; QMD and local models for semantic search; authenticated Hermes and an approved provider for the optional synthesis tool. The current dashboard stays local evidence mode; your separate AI helper is not automatically a configured service.
+- **Optional:** Poppler `pdftotext` for text-layer PDFs; QMD and local models for semantic search; authenticated Hermes and explicit approved provider/model/Python for dashboard synthesis. Semantic runs local search only. Generate requires the exact payload preview and a fresh transmission checkbox; Ask this collection remains local. Your separate AI helper is not automatically a configured service. See the optional services guide before enabling anything.
 
 See [setup](docs/FROM_SCRATCH.md), [folder intake](docs/FOLDER_INTAKE.md) and [optional services](docs/OPTIONAL_SERVICES.md). Passing tests/lint or a synthetic demo verifies mechanics, not real citations, causal identification or economist approval. No live vault, scheduler or external service is enabled merely by reading this guide.
