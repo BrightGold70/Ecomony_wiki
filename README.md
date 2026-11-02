@@ -1,5 +1,7 @@
 # Economics LLM Wiki
 
+**Latest shared upgrades:** compact entity chooser, readable reference cards, recent-publication/labelled edition-year ordering and optional consent-gated Gemini Notebook export. [English / 한국어](docs/SHARED_UPGRADES.md). Existing economics features are preserved; no personal account or research collection is included.
+
 **Start with your own research question, not somebody else's vault.**
 
 [Start here — economist + AI helper](START_HERE.md) · [한국어 시작 안내](START_HERE_KO.md) · [Everyday use](docs/ECONOMIST_GUIDE.md) · [Technical setup](docs/FROM_SCRATCH.md)

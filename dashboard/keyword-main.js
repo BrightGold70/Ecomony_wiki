@@ -7,6 +7,8 @@ const {deepSearch}=require('./deep-search.cjs');
 const {resolvePaperActions,openPaperAction,paperFrontmatter,recordedLocators}=require('./paper-navigation.cjs');
 const {evidenceCompleteness,completenessLabels,evidenceWarnings}=require('./evidence-completeness.cjs');
 const {ENTITY_FIELDS,validateEntities,entityMatches,entitySuggestions}=require('./entity-navigation.cjs');
+const {publicationDate,comparePublicationRecent}=require('./publication-order.cjs');
+const showNotebookPanel=require('./notebook-panel.cjs');
 const VIEW='economy-keyword-search';
 class SearchView extends ItemView{
  constructor(leaf,plugin){super(leaf);this.plugin=plugin}
@@ -24,7 +26,7 @@ class SearchView extends ItemView{
   root.createEl('p',{text:'Keyword search · Study findings · Similar papers · Recorded relationships. Local wiki only; drafts require economist review.'});
   const overview=root.createEl('p',{text:'Loading research index…'});
   const load=async()=>{const files=this.app.vault.getMarkdownFiles().filter(f=>/^economy_wiki\/(Literature|Topics|Datasets|Policies|Methods|Theories|Analyses|Comparisons|Queries)\//.test(f.path));const notes=[];for(const f of files){if(!safeNotePath(f.path))continue;try{notes.push({path:f.path,text:await this.readScoped(f)})}catch{}}this.index=buildIndex(notes);overview.setText(`${this.index.length} research notes · ${relationships(this.index).length} recorded directed links. Similarity is vocabulary overlap, not economic agreement.`)};
-  const toolbar=header.createDiv();toolbar.createEl('button',{text:'Refresh wiki'}).onclick=async()=>{this.cancelServices?.();await load();await run()};
+  const toolbar=header.createDiv();toolbar.createEl('button',{text:'Refresh wiki'}).onclick=async()=>{this.cancelServices?.();await load();renderEntities();await run()};
   const relationshipArea=root.createDiv();
   toolbar.createEl('button',{text:'Paper relationships'}).onclick=()=>{this.clearPanel(relationshipArea);relationshipArea.createEl('h3',{text:'Recorded paper-to-paper links'});relationshipArea.createEl('p',{text:'Explicit links already recorded in notes, not verified citation, confirmation, contradiction or causal relationships. Source and target open wiki notes in a split; source records and stored PDFs have separate named controls.'});const scoped=this.catalog(),edges=typedRelationships(scoped);relationshipArea.createEl('p',{text:`${edges.length} directed links within ${scoped.length} notes matching active metadata filters. Type labels derived from context are suggestions, not verified semantics.`});for(const e of edges){const line=relationshipArea.createDiv();const source=scoped.find(p=>p.path===e.source),target=scoped.find(p=>p.path===e.target);for(const [label,paper] of [['Source: ',source],['Target: ',target]]){line.createEl('button',{text:label+paper.title}).onclick=()=>openPaperAction(this.app,{kind:'wiki',target:paper.path});this.renderPaperActions(line,paper)}line.createEl('button',{text:'Explore source neighbourhood'}).onclick=()=>this.showRelated(e.source,relationshipArea);line.createEl('p',{text:e.kind+' ['+e.status+'] · '+e.context})}if(!edges.length)relationshipArea.createEl('p',{text:'No explicit study-to-study links currently recorded within active filters. Use Find similar for lexical candidates.'})};
   toolbar.createEl('button',{text:'Wiki management'}).onclick=async()=>{
@@ -43,20 +45,32 @@ class SearchView extends ItemView{
   const searchRow=header.createDiv();searchRow.style.cssText='display:flex;gap:8px;align-items:center';const input=searchRow.createEl('input',{type:'search',placeholder:'Search your wiki…'});input.style.cssText='flex:1;min-width:0';input.setAttribute('aria-label','Economics keyword');
   const semantic=searchRow.createEl('button',{text:'Semantic search'});semantic.style.flexShrink='0';semantic.onclick=()=>{if(!input.value.trim()){input.focus();return}return this.showServices(relationshipArea,input.value,{autoSearch:true})};
   const filters=this.filters={};for(const key of ['country','product','method','evidence_kind']){const el=header.createEl('input',{placeholder:key+' (exact metadata)'});el.setAttribute('aria-label',key+' filter');filters[key]=el;el.addEventListener('input',()=>run())}
+  const sortOrder=header.createEl('select');sortOrder.setAttribute('aria-label','Sort order');for(const [value,text]of [['recent','Recent publication first'],['title','Title A–Z'],['relevance','Relevance (when keyword)']])sortOrder.createEl('option',{value,text});sortOrder.value='recent';let previousQuery='',resultPage=0,lastResultScope='';
   const entityBar=header.createDiv();
-  const renderEntities=()=>{entityBar.empty();entityBar.createEl('small',{text:'My research entities — personal navigation, not collection policy'});entityBar.createEl('button',{text:'Edit my entities'}).onclick=()=>this.showEntityEditor(relationshipArea,personalEntities,next=>{personalEntities=next;renderEntities()});for(const e of personalEntities){const b=entityBar.createEl('button',{text:e.label+' entity'});b.setAttribute('data-entity-field',e.field);b.setAttribute('data-entity-value',e.value);b.title=e.field+' = '+e.value;b.onclick=()=>this.showEntity(relationshipArea,e)}};renderEntities();
+  const renderEntities=()=>{
+   entityBar.empty();const heading=entityBar.createDiv();heading.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0';heading.createEl('small',{text:'My research entities — personal navigation, not collection policy'});heading.createEl('button',{text:'Edit my entities'}).onclick=()=>this.showEntityEditor(relationshipArea,personalEntities,next=>{personalEntities=next;renderEntities()});
+   const help=heading.createEl('details');help.open=false;help.createEl('summary',{text:'About entity navigation'});help.createEl('p',{text:'Personal metadata navigation, not collection policy or evidence eligibility. Buttons do not change search filters. Counts and previews use exact recorded economics metadata across all nine compiled categories.'});
+   const chooser=entityBar.createDiv();chooser.setAttribute('role','group');chooser.setAttribute('aria-label','My entity reference pages');chooser.style.cssText='display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;min-width:0';
+   for(const e of personalEntities){const entry=chooser.createDiv();entry.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:4px;max-width:100%;min-width:0;border:1px solid var(--background-modifier-border);border-radius:6px;padding:2px 6px';const b=entry.createEl('button',{text:e.label+' entity'});b.style.cssText='height:auto;white-space:normal;overflow-wrap:anywhere;max-width:100%';b.setAttribute('data-entity-field',e.field);b.setAttribute('data-entity-value',e.value);b.title=e.field+' = '+e.value;b.onclick=()=>this.showEntity(relationshipArea,e);
+    const rows=entityMatches(this.index||[],e).map(p=>({...p,title:this.entityPaperTitle(p)})).sort(comparePublicationRecent),count=rows.length+' reference'+(rows.length===1?'':'s');entry.createEl('small',{text:count});const preview=entry.createEl('details');preview.open=false;preview.setAttribute('aria-label',e.label+' entity preview');preview.createEl('summary',{text:'Preview '+count+' · recent publication first'});for(const p of rows.slice(0,2))preview.createEl('p',{text:p.title}).style.cssText='white-space:normal;overflow-wrap:anywhere;margin:4px 0';if(!rows.length)preview.createEl('p',{text:'No matching metadata-recorded references'});
+   }
+  };renderEntities();
   const status=root.createEl('p',{text:'Searches compiled economics notes only. Drafts still require economist review.'});
   const results=root.createDiv();let sequence=0;
   const run=async()=>{
    const current=++sequence;const q=input.value.trim();results.empty();this.clearPanel(relationshipArea);
-   if(!q){status.setText('Enter a keyword to search compiled economics notes.');return}
+   if(q!==previousQuery){sortOrder.value=q?'relevance':'recent';previousQuery=q}if(!q&&sortOrder.value==='relevance')sortOrder.value='recent';for(const option of sortOrder.children)if(option.value==='relevance')option.disabled=!q;
    status.setText('Searching…');
    const notes=(this.index||[]).map(p=>({path:p.path,text:p.raw}));
    if(current!==sequence)return;
-   const {rows,expansions}=enhancedSearch(notes,q,Object.fromEntries(Object.entries(filters).map(([k,v])=>[k,v.value.trim()])));status.setText(`${rows.length} matching notes. Stored draft evidence, not verified causal or policy conclusions. Expanded terms: ${expansions.join('; ')||'none'}`);
-   for(const r of rows){
+   const {rows,expansions}=q?enhancedSearch(notes,q,Object.fromEntries(Object.entries(filters).map(([k,v])=>[k,v.value.trim()]))):{rows:this.catalog().slice(),expansions:[]};
+   const byPath=new Map(this.index.map(p=>[p.path,p]));if(sortOrder.value==='recent')rows.sort((a,b)=>comparePublicationRecent(byPath.get(a.path)||a,byPath.get(b.path)||b));if(sortOrder.value==='title')rows.sort((a,b)=>a.title<b.title?-1:a.title>b.title?1:a.path<b.path?-1:a.path>b.path?1:0);
+   status.setText(`${rows.length} matching notes. Sort order: ${sortOrder.value==='recent'?'Recent publication first (unknown last)':sortOrder.value==='title'?'Title A–Z':'Relevance (keyword search)'}. Partial dates compare at their lower bound; displayed precision is unchanged. Stored draft evidence, not verified causal or policy conclusions. Expanded terms: ${expansions.join('; ')||'none'}`);
+   const scope=JSON.stringify([q,Object.values(filters).map(f=>f.value),sortOrder.value]);if(scope!==lastResultScope){resultPage=0;lastResultScope=scope}resultPage=Math.min(resultPage,Math.max(0,Math.ceil(rows.length/25)-1));this.renderPageControls(results,'results',resultPage,rows.length,page=>{resultPage=page;return run()});
+   for(const r of rows.slice(resultPage*25,(resultPage+1)*25)){
     const card=results.createDiv();card.style.borderBottom='1px solid var(--background-modifier-border)';card.style.padding='12px 0';
     const a=card.createEl('a',{text:r.title,href:'#'});a.addEventListener('click',e=>{e.preventDefault();this.app.workspace.openLinkText(r.path,'',true)});
+    a.setAttribute('data-result-title',r.path);card.createEl('p',{text:publicationDate(byPath.get(r.path)||r).caption});
     card.createEl('p',{text:r.evidence+' · Economist review required'});
     this.renderWarnings(card,this.index.find(p=>p.path===r.path)||r);
     this.renderPaperActions(card,this.index.find(p=>p.path===r.path)||r);
@@ -94,22 +108,38 @@ class SearchView extends ItemView{
   toolbar.createEl('button',{text:'Topic evidence'}).onclick=()=>this.showTopics(relationshipArea,input.value);
   toolbar.createEl('button',{text:'Database health'}).onclick=()=>this.showDatabaseHealth(relationshipArea);
   toolbar.createEl('button',{text:'Publication status reports'}).onclick=()=>this.showPublicationReports(relationshipArea);
+  toolbar.createEl('button',{text:'Gemini Notebook'}).onclick=()=>this.showNotebook(relationshipArea);
   toolbar.createEl('button',{text:'Semantic / LLM services'}).onclick=()=>this.showServices(relationshipArea,input.value);
   toolbar.createEl('button',{text:'Evidence completeness'}).onclick=()=>this.showCompleteness(relationshipArea);
   toolbar.createEl('button',{text:'Topic revision proposals'}).onclick=()=>this.showProposals(relationshipArea);
   toolbar.createEl('button',{text:'Evidence lifecycle'}).onclick=()=>this.showLifecycle(relationshipArea);
   toolbar.createEl('button',{text:'Deeper search'}).onclick=()=>this.showDeep(relationshipArea,input.value);
   toolbar.createEl('button',{text:'Ask this collection'}).onclick=()=>this.showAsk(relationshipArea,input.value);
-  const reset=()=>{clearTimeout(this.timer);this.selected.clear();compareButton.setText('Compare selected (0)');input.value='';for(const el of Object.values(filters))el.value='';run();input.focus();root.scrollTop=0};
+  sortOrder.onchange=()=>{resultPage=0;return run()};
+  const reset=()=>{clearTimeout(this.timer);resultPage=0;previousQuery='';sortOrder.value='recent';this.selected.clear();compareButton.setText('Compare selected (0)');input.value='';for(const el of Object.values(filters))el.value='';run();input.focus();root.scrollTop=0};
   toolbar.createEl('button',{text:'Reset search'}).onclick=reset;
   input.addEventListener('search',()=>{clearTimeout(this.timer);run()});
   input.addEventListener('input',()=>{this.invalidateSynthesis?.();clearTimeout(this.timer);if(!input.value.trim()){run();return}this.timer=setTimeout(run,220)});
   input.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();reset()}else if(e.key==='Enter'){clearTimeout(this.timer);run()}});
-  input.focus();
+  await run();input.focus();
  }
  showEntity(area,entity){
   const rows=entityMatches(this.index||[],entity);this.clearPanel(area);area.createEl('h3',{text:entity.label+' entity references'});area.createEl('p',{text:'Exact metadata: '+entity.field+' = '+entity.value});area.createEl('p',{text:`${rows.length} matching catalog records. Independent of keyword and active metadata filters; those controls remain unchanged. Exact recorded metadata only, not automatic evidence eligibility, causal validity or policy approval.`});
-  for(const p of rows){const card=area.createDiv();card.createEl('h4',{text:p.title});this.renderPaperActions(card,p);card.createEl('small',{text:p.path});card.createEl('p',{text:p.findings||p.summary||'No separately extracted findings or summary stored.'})}
+  area.createEl('p',{text:'Recent publication first within each category role; unknown dates last. Partial dates compare at their lower bound. A version/edition year is not a verified publication date or economic approval.'});
+  for(const role of ['Literature','Topics','Datasets','Policies','Methods','Theories','Analyses','Comparisons','Queries']){const group=rows.filter(p=>p.path.split('/')[1]===role).map(p=>({...p,title:this.entityPaperTitle(p)})).sort(comparePublicationRecent);if(!group.length)continue;area.createEl('h4',{text:role+' ('+group.length+')'});for(const p of group)this.renderEntityCard(area,p)}
+ }
+ renderPageControls(area,label,page,total,onPage){
+  const pages=Math.max(1,Math.ceil(total/25)),nav=area.createDiv();nav.setAttribute('aria-label',label+' pagination');nav.createEl('small',{text:`Page ${page+1} of ${pages} · ${total} records · up to 25 per page`});for(const [text,offset]of [['Previous '+label+' page',-1],['Next '+label+' page',1]]){const b=nav.createEl('button',{text});b.disabled=page+offset<0||page+offset>=pages;b.onclick=()=>{if(!b.disabled)return onPage(page+offset)}}
+ }
+ entityPaperTitle(p){
+  const body=String(p.raw??p.text??'').replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/,''),heading=(body.match(/^#\s+(.+)$/m)||[])[1]||'',explicit=paperFrontmatter(p.raw??p.text).title;
+  const generic=!heading||/^(?:(?:literature|research|paper|study|reference|topic)(?:\s+(?:note|summary|stub|hub))?|summary|untitled)$/i.test(heading.trim())||/^[a-f0-9]{16,}$/i.test(heading.trim());return generic&&typeof explicit==='string'&&explicit.trim()?explicit:heading||p.title||'Title not recorded';
+ }
+ renderEntityCard(area,p){
+  const card=area.createDiv();card.setAttribute('data-entity-path',p.path);card.style.cssText='padding:14px 0;border-bottom:1px solid var(--background-modifier-border);min-width:0';const h=card.createEl('h5'),a=h.createEl('a',{text:p.title,href:'#'});a.style.cssText='white-space:normal;overflow-wrap:anywhere';a.onclick=e=>{e.preventDefault();return openPaperAction(this.app,{kind:'wiki',target:p.path})};card.createEl('p',{text:publicationDate(p).caption});card.createEl('small',{text:p.path});
+  const section=(label,text,open=false)=>{const d=card.createEl('details');d.open=open;d.createEl('summary',{text:label});d.createEl('p',{text:text||'Not separately recorded — consult the wiki note / original source.'}).style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';return d};
+  const recorded=paperFrontmatter(p.raw),summary=p.summary||recorded.abstract||recorded.summary||'';section(p.summaryLabel+' — expand to read',summary,true);section('Scope / units / design',p.population);section('Findings / numerical outcomes',p.findings);section('Limitations / interpretation',p.limitations);
+  const m=paperFrontmatter(p.raw),metadata=section('Citation / recorded metadata',Object.entries(m).map(([key,value])=>key+': '+(typeof value==='object'?JSON.stringify(value):value)).join('\n'));metadata.createEl('p',{text:'Recorded metadata only; not economic validation or a verified citation.'});this.renderWarnings(card,p);const actions=card.createEl('details');actions.open=false;actions.createEl('summary',{text:'Open actions'});this.renderPaperActions(actions,p);
  }
  async showEntityEditor(area,entities,onSave){
   this.clearPanel(area);area.createEl('h3',{text:'Edit my entities'});area.createEl('p',{text:'Choose an existing metadata field and its exact case-sensitive value, plus your own display name. Remove hides only a button, not notes or search results. No metadata, collection policy or evidence eligibility changes.'});
@@ -249,6 +279,7 @@ class SearchView extends ItemView{
   }
   area.scrollIntoView({behavior:'smooth',block:'start'});
  }
+ showNotebook(area){return showNotebookPanel.call(this,area)}
  async onClose(){this.proposalSession=null;this.completenessToken=null;this.cancelServices?.();clearTimeout(this.timer)}
 }
 module.exports=class extends Plugin{
