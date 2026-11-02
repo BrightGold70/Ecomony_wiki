@@ -30,6 +30,10 @@ Record what was actually read; metadata/abstract access is not full-paper apprai
 Do not invent identifiers, JEL codes, causal identification, estimates, hashes,
 full-text access, replication or human approval. Keep working-paper/journal versions,
 shared samples, dataset vintages and policy announcement/effective dates distinct.
+Consider explicit inspected author/publisher keywords for every Source/Literature pair;
+follow docs/INDEXING_NAVIGATION.md and Templates/Indexing-metadata.md for offline
+attachment. Uninspected fields stay pending; optional MeSH, qualifiers/Major Topic
+flags, PubMed KeywordList and JEL remain separate. Never infer them from prose.
 After paper two, compile one justified Topic comparing both studies and their limits.
 For paper three, propose a substantive update to that SAME Topic: old wording ->
 proposed wording -> exact source support -> reason and applicability changes.

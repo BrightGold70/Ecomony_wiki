@@ -1,6 +1,6 @@
 # Economics LLM Wiki
 
-**Indexing navigation:** publication-keyword browsing, provenance, optional imported MeSH and read-only automatic refresh are available. JEL classifications remain separate; MeSH is not required for trade papers. [Guide / 한국어](docs/INDEXING_NAVIGATION.md).
+**Indexing navigation:** publication-keyword browsing, provenance, optional imported MeSH and read-only automatic refresh are available. JEL classifications remain separate; MeSH is not required for trade papers. [Guide / 한국어](docs/INDEXING_NAVIGATION.md). Fresh wikis include pending defaults and an inspected-packet template; `scripts/attach-indexing.cjs` previews/applies offline hash-bound Source/Literature appendices and navigation nodes without inference or network calls.
 
 **Latest shared upgrades:** compact entity chooser, readable reference cards, recent-publication/labelled edition-year ordering and optional consent-gated Gemini Notebook export. [English / 한국어](docs/SHARED_UPGRADES.md). Existing economics features are preserved; no personal account or research collection is included.
 

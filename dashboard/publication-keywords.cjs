@@ -38,8 +38,10 @@ function publicationKeywords(note){
   const id=kwHash(JSON.stringify(o));if(!seen.has(id)){seen.add(id);observations.push({...o,provenance_id:id})}
  }
  if(invalid||status.startsWith('verified')&&!observations.length)return {...empty,status:'invalid_provenance'};
- const metadata=paperFrontmatter(raw),identity=metadata.identity||metadata.doi||metadata.pmid,version=metadata.version_key||metadata.scientific_version;
- return {status,observations,integrity:'appendix-hash-matched',identity:identity||null,version_key:version||null,identityVersion:identity&&version?'Note-declared identity/version; appendix does not bind them independently':empty.identityVersion};
+ const metadata=paperFrontmatter(raw);let identity=metadata.identity||metadata.doi||metadata.pmid,version=metadata.version_key||metadata.scientific_version;
+ const bindingLine=section.split('\n').find(l=>l.startsWith('Indexing binding: '));
+ if(bindingLine){try{const b=JSON.parse(bindingLine.slice(18));if(!/^(pmid:[1-9]\d*|doi:10\.\d{4,9}\/[^\s<>"\\]+)$/.test(b.identity)||typeof b.version_key!=='string'||!b.version_key||!/^raw\//.test(b.evidence_path)||!/^[a-f0-9]{64}$/.test(b.evidence_sha256)||observations.some(o=>o.evidence_sha256!==b.evidence_sha256)||metadata.identity&&metadata.identity!==b.identity||metadata.version_key&&metadata.version_key!==b.version_key||metadata.doi&&b.identity.startsWith('doi:')&&'doi:'+metadata.doi!==b.identity||metadata.pmid&&b.identity.startsWith('pmid:')&&'pmid:'+metadata.pmid!==b.identity)throw Error('Binding conflict');identity=b.identity;version=b.version_key;}catch{return {...empty,status:'invalid_provenance'}}}
+ return {status,observations,integrity:'appendix-hash-matched',identity:identity||null,version_key:version||null,identityVersion:bindingLine?'Appendix-bound operator-declared identity/version; not independently authenticated':identity&&version?'Note-declared identity/version; appendix does not bind them independently':empty.identityVersion};
 }
 function keywordPublicationKey(note){const m=paperFrontmatter(keywordRaw(note)),doi=m.doi;return typeof doi==='string'&&/^10\.\d{4,9}\/[^\s<>"\\]+$/i.test(doi)&&(m.doi_verified===true||m.doi_verified==='true')?'doi:'+doi.toLowerCase():'note:'+note.path}
 function keywordCatalog(index){

@@ -20,6 +20,12 @@ Every compiled page requires evidence_kind and research_question; causal/counter
 
 Example tags: labor, macroeconomics, development, public-finance, industrial-organization, trade, data, methods, theory, replication, synthesis. Trade-specific tags such as tariffs, gravity and gvc are optional, not a required taxonomy. Extend taxonomy deliberately. JEL classification is additional to readable topics. Do not infer verified JEL codes or silently translate terms.
 
+## Publication indexing lifecycle
+
+First Source/Literature pairs start with keyword_metadata_status: pending_source_inspection and mesh_metadata_status: pending_optional. These are initial defaults, not current provenance assertions; the latest hash-bound appendix is authoritative after attachment. Use Templates/Indexing-metadata.md and repository scripts/attach-indexing.cjs with an explicitly inspected local record, actual SHA256, declared identity/version and linked pair. No title/abstract keyword inference, automatic network acquisition or JEL/MeSH assignment. Keep author keywords, publisher keywords, PubMed KeywordList, MeSH descriptors/individual qualifier Major Topic flags, JEL and user tags distinct. Empty metadata stays pending, not absent.
+
+The offline helper previews by default, adds matching appendices to Source and Literature, creates deterministic navigation-only Topics and appends index/log entries. Nodes are bibliographic navigation, not substantive syntheses. Nine compiled categories and economics domain fields are unchanged. Original bytes and preexisting prose/frontmatter remain unchanged; reviewed notes and existing collector appendices require manual versioned migration. Exact repeat is a no-op; edited/colliding nodes or receipts fail closed. Hash agreement is local consistency, not authentication or expert approval.
+
 ## Source integrity
 
 Source requires title, type: source, source_mode: local or external. Local mode requires raw_path within raw/ and raw_sha256 computed from exact original bytes. External mode requires source_url, version, accessed and permission_note; it has no checked local hash. No silent overwrite or raw in-place update. Preserve old versions separately.

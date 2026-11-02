@@ -15,6 +15,8 @@ note_type: literature
 doi: ""
 working_paper_id: ""
 jel_codes: []
+keyword_metadata_status: pending_source_inspection
+mesh_metadata_status: pending_optional
 evidence_kind: ""
 research_question: ""
 estimand: ""

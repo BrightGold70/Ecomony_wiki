@@ -2,6 +2,8 @@
 note_type: source
 title: ""
 type: source
+keyword_metadata_status: pending_source_inspection
+mesh_metadata_status: pending_optional
 source_mode: local
 raw_path: ""
 raw_sha256: ""

@@ -35,6 +35,8 @@
 
 The CLI is `scripts/intake-papers.cjs`; consult `--help` for the implemented flags and proposal schema. Economics does not require a `--content-evidence` flag: do not copy a medical acquisition gate. The Source content requirements in the [run contract](AGENT_RUN_CONTRACT.md#source-content-contract) are a separate helper completion task. Storage and quote matching do not complete those summaries or validate identification. Start with a dry preview in an isolated fixture, then a small authorized real batch. Keep state outside the research vault. Install Poppler's `pdftotext` separately if PDF extraction is needed; never silently treat an image-only PDF as extracted evidence.
 
+After intake, use the [offline inspected indexing lifecycle](INDEXING_NAVIGATION.md#from-scratch-offline-attachment). New economics Source/Literature drafts explicitly start keyword inspection pending and optional MeSH pending. Intake does not parse prose into keywords, fetch PubMed or assign JEL. Preserve inspected metadata bytes separately, preview the packet helper and authorize attachment only to the exact pair.
+
 The workflow is on-demand. Watching a folder continuously, installing a scheduler, OCR automation, native dashboard intake controls and model/provider setup are separate actions, not implied by this feature.
 
 ## Commands for the technical helper

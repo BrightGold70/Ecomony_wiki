@@ -56,6 +56,8 @@ Set `raw_path` relative to `economy_wiki`, and `raw_sha256` to the actual output
 
 Write the Source summary required by the [run contract](AGENT_RUN_CONTRACT.md#source-content-contract): question, mechanism, data/sample/period, actual identification (or absent/not applicable), estimand, findings/uncertainty, limits/relevance, actual read scope and exact quotes/locators. An abstract or deterministic excerpt is partial evidence, not a completed full-paper appraisal. Create the linked Literature draft with `economist-review-needed`; do not fill unknown causal metadata with plausible claims.
 
+After the first Source/Literature pair, complete the [offline inspected indexing step](INDEXING_NAVIGATION.md#from-scratch-offline-attachment). Initialization supplies Templates/Indexing-metadata.md and pending defaults; intake does not infer keywords or retrieve metadata. Preview/apply an explicit inspected packet, then verify both appendices, literal vocabulary, navigation nodes and graph edges. MeSH remains optional and JEL separate. Uninspected metadata stays pending.
+
 Repeat for paper two, then create one justified Topic comparing both. Link relevant Dataset/Policy/Method/Theory/Analysis notes only where warranted. Preserve JEL, dataset vintages/units/licensing, policy dates, version overlap and shared samples. Add real compiled paths to index, append log and lint.
 
 ## 5. Third paper → bounded substantive update
