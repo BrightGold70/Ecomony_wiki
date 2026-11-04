@@ -47,7 +47,9 @@ Update index/log after authorized work; run lint and verify retrieval, graph and
 source/original links. Report substantive integration still pending separately.
 Keep confidential firm/household/administrative microdata, identifying details,
 licensed extracts and credentials out of this repository and unapproved services.
-Leave optional QMD/Hermes/provider services not configured unless authorized.
+Leave optional QMD/Hermes/provider services not configured unless authorized;
+when authorized, run npm run setup:runtime -- --vault [vault path] to install
+required runtime libraries and configure local semantic search and dashboard.
 Return changed paths, actual checks and coverage, gaps, pending expert decisions
 and blocked optional features. Do not change repository visibility or licensing.
 ```

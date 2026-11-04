@@ -19,5 +19,15 @@ function initWiki(vault){
  let created=0,skipped=0;for(const [relative,text]of Object.entries(files)){noSymlinks(path.join(root,relative),true);try{fs.writeFileSync(path.join(root,relative),text,{flag:'wx'});created++}catch(e){if(e.code==='EEXIST')skipped++;else throw e}}
  return {created,skipped,root};
 }
-if(require.main===module){if(!process.argv[2]){console.error('Usage: node scripts/init-wiki.cjs /path/to/vault');process.exit(1)}console.log(JSON.stringify(initWiki(process.argv[2])))}
+if(require.main===module){
+ const args=process.argv.slice(2).filter(a=>!a.startsWith('--'));
+ const vault=args[0];
+ if(!vault){console.error('Usage: node scripts/init-wiki.cjs /path/to/vault [--setup-runtime]');process.exit(1)}
+ const result=initWiki(vault);
+ if(process.argv.includes('--setup-runtime')){
+  const {setupRuntime}=require('./setup-runtime.cjs');
+  result.runtime=setupRuntime({vault,quiet:true});
+ }
+ console.log(JSON.stringify(result));
+}
 module.exports={initWiki};

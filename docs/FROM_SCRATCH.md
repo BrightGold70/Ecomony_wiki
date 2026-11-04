@@ -40,7 +40,13 @@ node scripts/lint-wiki.cjs /absolute/path/to/new-research-vault
 
 Pass the **parent vault root**, not its `economy_wiki` subfolder. Initialization is additive/non-overwriting. Existing vault schemas/templates are not automatically upgraded; propose a bounded migration if needed. Empty lint coverage is expected, not validated research. Keep this vault and its private state outside the source checkout.
 
-Copy built `dist/economy-keyword-search/` to the corresponding `.obsidian/plugins/economy-keyword-search/` folder of the new vault. Do not overwrite another plugin's settings. Open that vault in Obsidian, review/enable the local community plugin and use the command containing “economy” from the command palette. Confirm actual desktop behavior; build output does not prove the UI works on this installation.
+To install required runtime libraries, deploy the dashboard plugin and configure local paths in one step:
+
+```sh
+npm run setup:runtime -- --vault /absolute/path/to/new-research-vault
+```
+
+Or manually copy built `dist/economy-keyword-search/` to the corresponding `.obsidian/plugins/economy-keyword-search/` folder of the new vault. Do not overwrite another plugin's settings. Open that vault in Obsidian, review/enable the local community plugin and use the command containing “economy” from the command palette. Confirm actual desktop behavior; build output does not prove the UI works on this installation.
 
 ## 4. First paper → second paper and Topic
 

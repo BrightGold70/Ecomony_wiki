@@ -5,6 +5,7 @@
   "description": "Offline scoped economics research wiki and Obsidian dashboard",
   "scripts": {
     "build": "node scripts/build.cjs",
+    "setup:runtime": "node scripts/setup-runtime.cjs",
     "test": "node --test dashboard/test-*.cjs scripts/test-*.cjs",
     "test:python": "node scripts/run-python-tests.cjs",
     "init": "node scripts/init-wiki.cjs",
@@ -12,6 +13,9 @@
     "maintain": "node scripts/maintain-wiki.cjs",
     "monitor": "node scripts/monitor-publications.cjs",
     "qmd": "node scripts/qmd-adapter.cjs"
+  },
+  "optionalDependencies": {
+    "@tobilu/qmd": "2.8.3"
   },
   "engines": {
     "node": ">=22"
