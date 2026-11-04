@@ -21,6 +21,34 @@ test('entity cards show full clickable titles, complete summaries, scope, findin
  const cards=v.contentEl.all().filter(e=>e.attrs['data-entity-path']);assert.deepEqual(cards.map(e=>e.attrs['data-entity-path']),[notes[1].path,notes[0].path,notes[2].path]);assert.ok(v.contentEl.all().some(e=>e.text==='Literature (2)'));assert.ok(v.contentEl.all().some(e=>e.text==='Topics (1)'));
  const card=cards[1],title=card.all().find(e=>e.tag==='a'&&e.text===full);assert.ok(title);await title.onclick({preventDefault(){}});assert.deepEqual(opens.at(-1),[notes[0].path,'','split']);for(const text of ['Full stored summary old.','Korean steel units.','Stored estimate old.','10.1234/example','ATT'])assert.ok(card.contents().includes(text),text);for(const label of ['Stored abstract — expand to read','Scope / units / design','Findings / numerical outcomes','Citation / recorded metadata','Open actions'])assert.ok(card.all().some(e=>e.tag==='summary'&&e.text===label),label);assert.match(card.contents(),/Publication date: 2020/);assert.equal(v.filters.country.value,'Japan');
 });
+test('entity references render markdown tables as html tables with header and cells',async()=>{
+ const tableNote=note('tbl','Table Study');
+ tableNote.text=tableNote.text.replace('Stored estimate tbl.', '| Outcome | Estimate |\n|---|---|\n| TFP | +4.2% |');
+ const {v}=await setup([tableNote],prefs,true);
+ await button(v,'My Korea entity').onclick();
+ const card=v.contentEl.all().find(e=>e.attrs['data-entity-path']===tableNote.path);
+ assert.ok(card);
+ const table=card.all().find(e=>e.tag==='table');
+ assert.ok(table,'table element must be rendered in reference card');
+ assert.deepEqual(table.all().filter(e=>e.tag==='th').map(e=>e.text),['Outcome','Estimate']);
+ assert.deepEqual(table.all().filter(e=>e.tag==='td').map(e=>e.text),['TFP','+4.2%']);
+});
+test('entity references render inline bold, italic and code formatting',async()=>{
+ const boldNote=note('bld','Bold Study');
+ boldNote.text=boldNote.text.replace('Korean steel units.', '- **Setting**: Korean steel units.\n- **Estimates**: **+4.2%** (*p* < 0.01) with `2SLS`.');
+ const {v}=await setup([boldNote],prefs,true);
+ await button(v,'My Korea entity').onclick();
+ const card=v.contentEl.all().find(e=>e.attrs['data-entity-path']===boldNote.path);
+ assert.ok(card);
+ const strongs=card.all().filter(e=>e.tag==='strong').map(e=>e.text);
+ assert.ok(strongs.includes('Setting'),'must render bold Setting in strong tag');
+ assert.ok(strongs.includes('Estimates'),'must render bold Estimates in strong tag');
+ assert.ok(strongs.includes('+4.2%'),'must render bold +4.2% in strong tag');
+ const ems=card.all().filter(e=>e.tag==='em').map(e=>e.text);
+ assert.ok(ems.includes('p'),'must render italic p in em tag');
+ const codes=card.all().filter(e=>e.tag==='code').map(e=>e.text);
+ assert.ok(codes.includes('2SLS'),'must render code 2SLS in code tag');
+});
 test('blank browsing defaults recent; keyword transitions use relevance; explicit sorting and pagination reset preserve all nine economics categories',async()=>{
  const notes=[note('a','Trade match match','year: 2020'),note('b','Zebra','year: 2026')];notes[1].text+='\nTrade';for(const folder of ['Topics','Datasets','Policies','Methods','Theories','Analyses','Comparisons','Queries'])notes.push(note(folder,folder,'year: 2022',folder));const {v}=await setup(notes);
  const sort=field(v,'Sort order'),input=field(v,'Economics keyword');assert.ok(sort);assert.equal(sort.value,'recent');assert.equal(titles(v)[0],'Zebra');assert.equal(titles(v).length,10);assert.match(v.contentEl.contents(),/lower bound/i);

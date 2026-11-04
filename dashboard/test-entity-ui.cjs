@@ -45,3 +45,40 @@ test('empty-by-default editor has one aligned header per column and explicit met
   await button(v,'Cancel entity edits').onclick();assert.equal(h.saves,0);await button(v,'Edit my entities').onclick();assert.equal(field(v,'Entity value 1'),undefined);await button(v,'Save my entities').onclick();assert.deepEqual(h.stored,{...cfg,researchEntities:[]});assert.equal(entities((await setup(h.stored)).v).length,0);
  }
 });
+test('subject and keyword entities can be configured, saved, and opened',async()=>{
+ const h=await setup({researchEntities:[entry('subject','Macroeconomics','Macro Research'),entry('keyword','tariffs','Tariff Studies')]});
+ assert.equal(entities(h.v).length,2);
+ assert.equal(entities(h.v)[0].text,'Macro Research entity');
+ assert.equal(entities(h.v)[1].text,'Tariff Studies entity');
+ await button(h.v,'Edit my entities').onclick();
+ const fieldSelect1=field(h.v,'Entity field 1');
+ const options=fieldSelect1.children.map(c=>c.value);
+ assert.ok(options.includes('subject'));
+ assert.ok(options.includes('keyword'));
+ field(h.v,'Entity label 1').value='Macroeconomics Focus';
+ field(h.v,'Entity label 1').oninput();
+ await button(h.v,'Save my entities').onclick();
+ assert.equal(h.stored.researchEntities[0].label,'Macroeconomics Focus');
+});
+test('picking metadata suggestion fills empty draft row and supports onchange feedback',async()=>{
+ const h=await setup({},true);
+ await button(h.v,'Edit my entities').onclick();
+ // 1. Click Add entity first -> creates empty row
+ await button(h.v,'Add entity').onclick();
+ assert.equal(field(h.v,'Entity value 1').value,'');
+ // 2. Choosing suggestion via onchange
+ const suggestions=field(h.v,'Metadata entity suggestions');
+ suggestions.value=JSON.stringify(['method','DiD']);
+ suggestions.onchange?.();
+ assert.match(h.v.contentEl.contents(),/Selected suggestion: method = DiD/);
+ // 3. Pick metadata suggestion should fill the empty row instead of appending a second broken row
+ await button(h.v,'Pick metadata suggestion').onclick();
+ assert.equal(field(h.v,'Entity field 1').value,'method');
+ assert.equal(field(h.v,'Entity value 1').value,'DiD');
+ assert.equal(field(h.v,'Entity value 2'),undefined);
+ // 4. Save succeeds cleanly
+ await button(h.v,'Save my entities').onclick();
+ assert.equal(h.stored.researchEntities.length,1);
+ assert.equal(h.stored.researchEntities[0].field,'method');
+ assert.equal(h.stored.researchEntities[0].value,'DiD');
+});

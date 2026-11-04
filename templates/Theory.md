@@ -7,6 +7,8 @@ research_question: ""
 country: ""
 product: ""
 method: ""
+subject: ""
+keyword: ""
 type: theory
 tags: []
 sources: []

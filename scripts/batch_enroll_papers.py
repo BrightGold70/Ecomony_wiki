@@ -183,6 +183,8 @@ def main():
 note_type: source
 title: "{meta['title']}"
 type: source
+keyword_metadata_status: pending_source_inspection
+mesh_metadata_status: pending_optional
 source_mode: local
 raw_path: "raw/papers/{sha}.pdf"
 raw_sha256: {sha}
@@ -222,6 +224,11 @@ SHA256: `{sha}`
 title: "{meta['title']}"
 created: "2026-11-01"
 updated: "2026-11-01"
+country: "global-sample"
+product: "relevant-commodities-or-assets"
+method: "econometric-modeling"
+subject: "geopolitical-risk"
+keyword: "{meta['topic_key']}"
 type: summary
 tags: {tags_str}
 sources: [economy_wiki/Sources/{sha}.md]
@@ -231,7 +238,11 @@ contested: false
 note_type: literature
 doi: "{meta['doi']}"
 working_paper_id: ""
+year: "{meta['year']}"
+publication_year: {meta['year']}
 jel_codes: {jel_str}
+keyword_metadata_status: pending_source_inspection
+mesh_metadata_status: pending_optional
 evidence_kind: causal
 research_question: "What is the empirical effect of geopolitical shocks on {meta['topic_key']} dynamics?"
 estimand: "Response elasticities and dynamic spillover parameters under geopolitical risk"

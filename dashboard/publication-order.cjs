@@ -17,7 +17,7 @@ function latestCollectorMetadata(raw){
  const rootCollector=['','\n'].some(end=>hashContent(JSON.stringify(rootContent+end))===markers[0].sha256);
  const last=markers.at(-1),minimum=markers.length>1?markers.at(-2).end:0;
  if(headers.filter(p=>p>=minimum&&p<last.start).length>32)return {status:'invalid',sha256:last.sha256,rootCollector,fields:{}};
- const allowed=new Set(['status','review_status','doi','topics','country','product','method','evidence_kind','research_question','identification_strategy','estimand','source_url','source_mode','publication_date','published','date_published','publication_year','year','version']);
+ const allowed=new Set(['status','review_status','doi','topics','country','product','method','evidence_kind','subject','keyword','research_question','identification_strategy','estimand','source_url','source_mode','publication_date','published','date_published','publication_year','year','version']);
  for(const start of headers.filter(p=>p>=minimum&&p<last.start)){
   const content=raw.slice(start,last.start).trimEnd();
   if(!['','\n'].some(end=>hashContent(JSON.stringify(content+end))===last.sha256))continue;

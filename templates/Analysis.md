@@ -6,6 +6,8 @@ research_question: ""
 country: ""
 product: ""
 method: ""
+subject: ""
+keyword: ""
 type: analysis
 tags: []
 sources: []

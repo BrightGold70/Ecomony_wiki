@@ -48,8 +48,8 @@ class SearchView extends ItemView{
   const configured=typeof this.plugin.loadData==='function'?(await this.plugin.loadData()||{}):{};
   let personalEntities=[];try{personalEntities=validateEntities(configured.researchEntities===undefined?[]:configured.researchEntities)}catch{/* Invalid preferences never become filters or defaults. */}
   const searchRow=header.createDiv();searchRow.style.cssText='display:flex;gap:8px;align-items:center';const input=searchRow.createEl('input',{type:'search',placeholder:'Search your wiki…'});input.style.cssText='flex:1;min-width:0';input.setAttribute('aria-label','Economics keyword');
-  const semantic=searchRow.createEl('button',{text:'Semantic search'});semantic.style.flexShrink='0';semantic.onclick=()=>{if(!input.value.trim()){input.focus();return}return this.showServices(relationshipArea,input.value,{autoSearch:true})};
-  const filters=this.filters={};for(const key of ['country','product','method','evidence_kind']){const el=header.createEl('input',{placeholder:key+' (exact metadata)'});el.setAttribute('aria-label',key+' filter');filters[key]=el;el.addEventListener('input',()=>run())}
+  const semantic=searchRow.createEl('button',{text:'Semantic search'});semantic.style.flexShrink='0';semantic.onclick=()=>{if(!input.value.trim()){input.focus();return this.showServices(relationshipArea,'',{autoSearch:false})}return this.showServices(relationshipArea,input.value,{autoSearch:true})};
+  const filters=this.filters={};for(const key of ['country','product','method','evidence_kind','subject','keyword']){const el=header.createEl('input',{placeholder:key+' (exact metadata)'});el.setAttribute('aria-label',key+' filter');filters[key]=el;el.addEventListener('input',()=>run())}
   const sortOrder=header.createEl('select');sortOrder.setAttribute('aria-label','Sort order');for(const [value,text]of [['recent','Recent publication first'],['title','Title A–Z'],['relevance','Relevance (when keyword)']])sortOrder.createEl('option',{value,text});sortOrder.value='recent';let previousQuery='',resultPage=0,lastResultScope='';
   const entityBar=header.createDiv();
   const renderEntities=()=>{
@@ -83,15 +83,7 @@ class SearchView extends ItemView{
     const findingsPanel=card.createEl('details');findingsPanel.open=true;findingsPanel.createEl('summary',{text:'Research findings and estimates'});
     const renderSection=(label,text)=>{
      findingsPanel.createEl('h4',{text:label});
-     if(!text){findingsPanel.createEl('p',{text:'Not separately extracted in this wiki note — consult the summary/original source.'});return}
-     const lines=text.split('\n');let table=null;
-     for(const line of lines){
-      if(/^\s*\|/.test(line)){
-       if(/^\s*\|[\s:|-]+\|\s*$/.test(line))continue;
-       if(!table)table=findingsPanel.createEl('table');
-       const tr=table.createEl('tr');for(const value of line.trim().replace(/^\||\|$/g,'').split('|'))tr.createEl('td',{text:value.trim()});
-      }else{table=null;if(line.trim()){const p=findingsPanel.createEl('p',{text:line});p.style.whiteSpace='pre-wrap'}}
-     }
+     this.renderFormattedBlock(findingsPanel,text,'Not separately extracted in this wiki note — consult the summary/original source.');
     };
     renderSection('Units / design',r.population);
     renderSection('Findings / numerical outcomes',r.findings);
@@ -178,6 +170,7 @@ class SearchView extends ItemView{
   const rows=entityMatches((this.index||[]).filter(p=>!isBibliographicNavigation(p)),entity);this.clearPanel(area);area.createEl('h3',{text:entity.label+' entity references'});area.createEl('p',{text:'Exact metadata: '+entity.field+' = '+entity.value});area.createEl('p',{text:`${rows.length} matching catalog records. Independent of keyword and active metadata filters; those controls remain unchanged. Exact recorded metadata only, not automatic evidence eligibility, causal validity or policy approval.`});
   area.createEl('p',{text:'Recent publication first within each category role; unknown dates last. Partial dates compare at their lower bound. A version/edition year is not a verified publication date or economic approval.'});
   for(const role of ['Literature','Topics','Datasets','Policies','Methods','Theories','Analyses','Comparisons','Queries']){const group=rows.filter(p=>p.path.split('/')[1]===role).map(p=>({...p,title:this.entityPaperTitle(p)})).sort(comparePublicationRecent);if(!group.length)continue;area.createEl('h4',{text:role+' ('+group.length+')'});for(const p of group)this.renderEntityCard(area,p)}
+  this.scrollPanelIntoView(area);
  }
  renderPageControls(area,label,page,total,onPage){
   const pages=Math.max(1,Math.ceil(total/25)),nav=area.createDiv();nav.setAttribute('aria-label',label+' pagination');nav.createEl('small',{text:`Page ${page+1} of ${pages} · ${total} records · up to 25 per page`});for(const [text,offset]of [['Previous '+label+' page',-1],['Next '+label+' page',1]]){const b=nav.createEl('button',{text});b.disabled=page+offset<0||page+offset>=pages;b.onclick=()=>{if(!b.disabled)return onPage(page+offset)}}
@@ -186,9 +179,69 @@ class SearchView extends ItemView{
   const body=String(p.raw??p.text??'').replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/,''),heading=(body.match(/^#\s+(.+)$/m)||[])[1]||'',explicit=paperFrontmatter(p.raw??p.text).title;
   const generic=!heading||/^(?:(?:literature|research|paper|study|reference|topic)(?:\s+(?:note|summary|stub|hub))?|summary|untitled)$/i.test(heading.trim())||/^[a-f0-9]{16,}$/i.test(heading.trim());return generic&&typeof explicit==='string'&&explicit.trim()?explicit:heading||p.title||'Title not recorded';
  }
+ renderInlineMarkdown(container,text){
+  if(!text)return;
+  const pattern=/(`[^`\n]+`|\*\*\*(?!\s)[^*\n]+(?<!\s)\*\*\*|\*\*(?!\s)[^*\n]+(?<!\s)\*\*|__(?!\s)[^_\n]+(?<!\s)__|\*(?!\s)[^*\n]+(?<!\s)\*)/g;
+  let lastIndex=0,match;
+  while((match=pattern.exec(text))!==null){
+   if(match.index>lastIndex){
+    container.createEl('span',{text:text.slice(lastIndex,match.index)});
+   }
+   const token=match[0];
+   if(token.startsWith('`')&&token.endsWith('`')){
+    container.createEl('code',{text:token.slice(1,-1)});
+   }else if(token.startsWith('***')&&token.endsWith('***')){
+    container.createEl('strong').createEl('em',{text:token.slice(3,-3)});
+   }else if((token.startsWith('**')&&token.endsWith('**'))||(token.startsWith('__')&&token.endsWith('__'))){
+    container.createEl('strong',{text:token.slice(2,-2)});
+   }else if(token.startsWith('*')&&token.endsWith('*')){
+    container.createEl('em',{text:token.slice(1,-1)});
+   }
+   lastIndex=pattern.lastIndex;
+  }
+  if(lastIndex<text.length){
+   container.createEl('span',{text:text.slice(lastIndex)});
+  }
+ }
+ renderFormattedBlock(container,content,fallback='Not separately recorded — consult the wiki note / original source.'){
+  if(!content||!content.trim()){container.createEl('p',{text:fallback}).style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';return}
+  const lines=content.split(/\r?\n/);let table=null,isHeader=true;
+  for(const line of lines){
+   if(/^\s*\|/.test(line)){
+    if(/^\s*\|[\s:|-]+\|\s*$/.test(line))continue;
+    if(!table){
+     const wrap=container.createDiv();wrap.style.cssText='overflow-x:auto;margin:8px 0';
+     table=wrap.createEl('table');table.style.cssText='border-collapse:collapse;width:100%;margin:4px 0';
+     isHeader=true;
+    }
+    const tr=table.createEl('tr'),cells=line.trim().replace(/^\||\|$/g,'').split('|');
+    for(const val of cells){
+     const tag=isHeader?'th':'td',trimmed=val.trim(),cell=tr.createEl(tag);
+     cell.style.cssText='border:1px solid var(--background-modifier-border);padding:6px 10px;text-align:left;'+(isHeader?'background:var(--background-secondary);font-weight:600;':'');
+     if(!/(`|\*\*|__|\*)/.test(trimmed)){
+      cell.setText(trimmed);
+     }else{
+      this.renderInlineMarkdown(cell,trimmed);
+     }
+    }
+    isHeader=false;
+   }else{
+    table=null;
+    if(line.trim()){
+     const p=container.createEl('p');
+     p.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0';
+     if(!/(`|\*\*|__|\*)/.test(line)){
+      p.setText(line);
+     }else{
+      this.renderInlineMarkdown(p,line);
+     }
+    }
+   }
+  }
+ }
  renderEntityCard(area,p){
   const card=area.createDiv();card.setAttribute('data-entity-path',p.path);card.style.cssText='padding:14px 0;border-bottom:1px solid var(--background-modifier-border);min-width:0';const h=card.createEl('h5'),a=h.createEl('a',{text:p.title,href:'#'});a.style.cssText='white-space:normal;overflow-wrap:anywhere';a.onclick=e=>{e.preventDefault();return openPaperAction(this.app,{kind:'wiki',target:p.path})};card.createEl('p',{text:publicationDate(p).caption});card.createEl('small',{text:p.path});
-  const section=(label,text,open=false)=>{const d=card.createEl('details');d.open=open;d.createEl('summary',{text:label});d.createEl('p',{text:text||'Not separately recorded — consult the wiki note / original source.'}).style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';return d};
+  const section=(label,text,open=false)=>{const d=card.createEl('details');d.open=open;d.createEl('summary',{text:label});this.renderFormattedBlock(d,text);return d};
   const recorded=paperFrontmatter(p.raw),summary=p.summary||recorded.abstract||recorded.summary||'';section(p.summaryLabel+' — expand to read',summary,true);section('Scope / units / design',p.population);section('Findings / numerical outcomes',p.findings);section('Limitations / interpretation',p.limitations);
   const m=paperFrontmatter(p.raw),metadata=section('Citation / recorded metadata',Object.entries(m).map(([key,value])=>key+': '+(typeof value==='object'?JSON.stringify(value):value)).join('\n'));metadata.createEl('p',{text:'Recorded metadata only; not economic validation or a verified citation.'});this.renderWarnings(card,p);const actions=card.createEl('details');actions.open=false;actions.createEl('summary',{text:'Open actions'});this.renderPaperActions(actions,p);
  }
@@ -197,16 +250,59 @@ class SearchView extends ItemView{
   const draft=entities.map(e=>({...e})),columns='160px 240px 240px auto',head=area.createDiv();head.style.display='grid';head.style.gridTemplateColumns=columns;head.style.gap='8px';for(const text of ['Metadata field','Exact metadata value','Display name'])head.createEl('strong',{text});const rows=area.createDiv();
   const render=()=>{rows.empty();draft.forEach((entity,i)=>{const row=rows.createDiv();row.style.display='grid';row.style.gridTemplateColumns=columns;row.style.gap='8px';row.style.margin='4px 0';const select=row.createEl('select');select.setAttribute('aria-label','Entity field '+(i+1));for(const field of ENTITY_FIELDS)select.createEl('option',{value:field,text:field});select.value=entity.field;select.onchange=()=>{entity.field=select.value};for(const [key,label]of [['value','Entity value'],['label','Entity label']]){const input=row.createEl('input',{value:entity[key]});input.setAttribute('aria-label',label+' '+(i+1));input.oninput=()=>{entity[key]=input.value};input.style.minWidth='0'}const actions=row.createDiv();for(const [text,offset]of [['up',-1],['down',1]]){const b=actions.createEl('button',{text:`Move entity ${i+1} ${text}`});b.disabled=i+offset<0||i+offset>=draft.length;b.onclick=()=>{if(b.disabled)return;[draft[i],draft[i+offset]]=[draft[i+offset],draft[i]];render()}}actions.createEl('button',{text:'Remove entity '+(i+1)}).onclick=()=>{draft.splice(i,1);render()}})};render();
   area.createEl('button',{text:'Add entity'}).onclick=()=>{draft.push({field:'country',value:'',label:''});render()};
-  const suggestions=area.createEl('select');suggestions.setAttribute('aria-label','Metadata entity suggestions');suggestions.createEl('option',{value:'',text:'Choose recorded metadata to add'});const available=entitySuggestions(this.index||[]);for(const e of available)suggestions.createEl('option',{value:JSON.stringify([e.field,e.value]),text:e.field+' = '+e.value});suggestions.value='';area.createEl('button',{text:'Pick metadata suggestion'}).onclick=()=>{let targetVal=suggestions.value;if(!targetVal&&suggestions.options?.length>1){targetVal=suggestions.options[1].value;suggestions.value=targetVal;}const e=available.find(e=>JSON.stringify([e.field,e.value])===targetVal);if(e){if(!draft.some(d=>d.field===e.field&&d.value===e.value)){draft.push({...e});render();status.setText('Added: '+e.field+' = '+e.value+'. Click Save my entities below to apply.');}else{status.setText('Entity already added: '+e.field+' = '+e.value);}}else{status.setText('No metadata chosen. Select an item from the dropdown or click Add entity to type.');}};
+  const suggestions=area.createEl('select');suggestions.setAttribute('aria-label','Metadata entity suggestions');suggestions.createEl('option',{value:'',text:'Choose recorded metadata to add'});const available=entitySuggestions(this.index||[]);for(const e of available)suggestions.createEl('option',{value:JSON.stringify([e.field,e.value]),text:e.field+' = '+e.value});suggestions.value='';
+  let selectedSuggestionVal='';
+  suggestions.onchange=()=>{
+   selectedSuggestionVal=suggestions.value;
+   const picked=available.find(e=>JSON.stringify([e.field,e.value])===selectedSuggestionVal);
+   if(picked)status.setText('Selected suggestion: '+picked.field+' = '+picked.value+'. Click "Pick metadata suggestion" to insert.');
+   else status.setText('');
+  };
+  area.createEl('button',{text:'Pick metadata suggestion'}).onclick=()=>{
+   let targetVal=selectedSuggestionVal||suggestions.value;
+   if(!targetVal&&typeof suggestions.selectedIndex==='number'&&suggestions.selectedIndex>0&&suggestions.options&&suggestions.options[suggestions.selectedIndex]){
+    targetVal=suggestions.options[suggestions.selectedIndex].value;
+   }
+   if(!targetVal&&suggestions.options&&suggestions.options.length>1){
+    targetVal=suggestions.options[1].value;
+    suggestions.value=targetVal;
+   }
+   if(!targetVal&&available.length>0){
+    targetVal=JSON.stringify([available[0].field,available[0].value]);
+    suggestions.value=targetVal;
+   }
+   if(!targetVal){
+    status.setText(available.length?'No metadata chosen. Select an item from the dropdown or click Add entity to type.':'No recorded metadata found in current vault notes. Click "Add entity" to define a custom entity.');
+    return;
+   }
+   const e=available.find(item=>JSON.stringify([item.field,item.value])===targetVal);
+   if(e){
+    const emptyIndex=draft.findIndex(d=>!d.value.trim()||!d.label.trim());
+    if(emptyIndex>=0){
+     draft[emptyIndex]={field:e.field,value:e.value,label:e.label};
+     render();
+     status.setText('Added: '+e.field+' = '+e.value+'. Click Save my entities below to apply.');
+    }else if(!draft.some(d=>d.field===e.field&&d.value===e.value)){
+     draft.push({field:e.field,value:e.value,label:e.label});
+     render();
+     status.setText('Added: '+e.field+' = '+e.value+'. Click Save my entities below to apply.');
+    }else{
+     status.setText('Entity already added: '+e.field+' = '+e.value);
+    }
+   }else{
+    status.setText('No metadata chosen. Select an item from the dropdown or click Add entity to type.');
+   }
+  };
   area.createEl('button',{text:'Cancel entity edits'}).onclick=()=>this.clearPanel(area);
   const status=area.createEl('p'),save=area.createEl('button',{text:'Save my entities'});save.onclick=async()=>{let next;try{next=validateEntities(draft)}catch(e){status.setText(e.message);return}save.disabled=true;try{const latest=await this.plugin.loadData()||{};await this.plugin.saveData({...latest,researchEntities:next});await onSave(next);this.clearPanel(area)}catch{status.setText('Unable to save local entity preferences. No notes changed.')}finally{save.disabled=false}};
+  this.scrollPanelIntoView(area);
  }
- async showDatabaseHealth(area){this.clearPanel(area);area.createEl('h3',{text:'Database health and daily maintenance'});area.createEl('p',{text:'Structural reconciliation, not evidence validation. Reports identify problems without silently rewriting collector notes or economic decisions.'});const files=this.app.vault.getFiles().filter(f=>/^economy_wiki\/Review\/maintenance\/[^/]+\.json$/.test(f.path)).sort((a,b)=>b.name.localeCompare(a.name));if(!files.length){area.createEl('p',{text:'No maintenance report available yet.'});return}try{const saved=JSON.parse(await this.readScoped(files[0]));const report=saved.audit?saved:{audit:saved};area.createEl('p',{text:'Latest saved report: '+files[0].basename});area.createEl('pre',{text:JSON.stringify({run:report.audit?.run,counts:report.audit?.counts,changes:report.audit?.changes?Object.fromEntries(Object.entries(report.audit.changes).map(([k,v])=>[k,Array.isArray(v)?v.length:v])):null,metadata:report.audit?.metadata,navigationIndex:report.audit?.navigationIndex,searchIndex:{state:report.searchIndex?.state,documents:report.searchIndex?.receipt?.stagedDocuments}},null,2)});const details=area.createEl('details');details.createEl('summary',{text:'Full audit findings'});details.createEl('pre',{text:JSON.stringify(report.audit?.issues||[],null,2)});area.createEl('p',{text:'New or changed findings require review. Hash matches do not imply economic correctness. No automatic merge, source deletion or economic approval.'})}catch(e){area.createEl('p',{text:'Report invalid: '+e.message})}}
- async showPublicationReports(area){this.clearPanel(area);area.createEl('h3',{text:'Publication status reports'});area.createEl('p',{text:'Named-source checks only, not scientific validity or complete notice coverage. Use the monitoring CLI to refresh; stored reports never imply a paper is safe.'});const files=this.app.vault.getFiles().filter(f=>/^economy_wiki\/Review\/publication-status\/[^/]+\.json$/.test(f.path));if(!files.length)area.createEl('p',{text:'No durable reports yet.'});for(const f of files){try{const data=JSON.parse(await this.readScoped(f));area.createEl('h4',{text:f.basename});area.createEl('pre',{text:JSON.stringify(data.coverage||{coverage:data.initial?.coverage,retry:data.retry?.coverage,warning:data.warning},null,2)})}catch(e){area.createEl('p',{text:f.path+': '+e.message})}}}
+ async showDatabaseHealth(area){this.clearPanel(area);area.createEl('h3',{text:'Database health and daily maintenance'});area.createEl('p',{text:'Structural reconciliation, not evidence validation. Reports identify problems without silently rewriting collector notes or economic decisions.'});const files=this.app.vault.getFiles().filter(f=>/^economy_wiki\/Review\/maintenance\/[^/]+\.json$/.test(f.path)).sort((a,b)=>b.name.localeCompare(a.name));if(!files.length){area.createEl('p',{text:'No maintenance report available yet.'});return}try{const saved=JSON.parse(await this.readScoped(files[0]));const report=saved.audit?saved:{audit:saved};area.createEl('p',{text:'Latest saved report: '+files[0].basename});area.createEl('pre',{text:JSON.stringify({run:report.audit?.run,counts:report.audit?.counts,changes:report.audit?.changes?Object.fromEntries(Object.entries(report.audit.changes).map(([k,v])=>[k,Array.isArray(v)?v.length:v])):null,metadata:report.audit?.metadata,navigationIndex:report.audit?.navigationIndex,searchIndex:{state:report.searchIndex?.state,documents:report.searchIndex?.receipt?.stagedDocuments}},null,2)});const details=area.createEl('details');details.createEl('summary',{text:'Full audit findings'});details.createEl('pre',{text:JSON.stringify(report.audit?.issues||[],null,2)});area.createEl('p',{text:'New or changed findings require review. Hash matches do not imply economic correctness. No automatic merge, source deletion or economic approval.'})}catch(e){area.createEl('p',{text:'Report invalid: '+e.message})}this.scrollPanelIntoView(area)}
+ async showPublicationReports(area){this.clearPanel(area);area.createEl('h3',{text:'Publication status reports'});area.createEl('p',{text:'Named-source checks only, not scientific validity or complete notice coverage. Use the monitoring CLI to refresh; stored reports never imply a paper is safe.'});const files=this.app.vault.getFiles().filter(f=>/^economy_wiki\/Review\/publication-status\/[^/]+\.json$/.test(f.path));if(!files.length)area.createEl('p',{text:'No durable reports yet.'});for(const f of files){try{const data=JSON.parse(await this.readScoped(f));area.createEl('h4',{text:f.basename});area.createEl('pre',{text:JSON.stringify(data.coverage||{coverage:data.initial?.coverage,retry:data.retry?.coverage,warning:data.warning},null,2)})}catch(e){area.createEl('p',{text:f.path+': '+e.message})}}this.scrollPanelIntoView(area)}
  clearPanel(area){this.activeKeywordPanel=null;this.proposalSession=null;this.completenessToken=null;if(this.serviceSession?.area===area)this.cancelServices?.();area.empty()}
  renderEvidencePreview(area,p){
   const card=area.createEl('article');card.style.cssText='border:1px solid var(--background-modifier-border);padding:14px;margin:12px 0';card.createEl('h4',{text:p.title});card.createEl('small',{text:p.path});this.renderPaperActions(card,{path:p.path,title:p.title,raw:p.text});
-  const details=paperDetails(p.text);for(const [label,value]of [['Evidence kind',details.evidence_kind],['Estimand',details.estimand],['Identification strategy',details.identification_strategy],['Units / design',details.population],['Reported findings',details.findings],['Limitations',details.limitations],[details.summaryLabel,details.summary]]){card.createEl('h5',{text:label});const text=card.createEl('p',{text:value||'Not separately recorded in the selected excerpt.'});text.style.whiteSpace='pre-wrap'}
+  const details=paperDetails(p.text);for(const [label,value]of [['Evidence kind',details.evidence_kind],['Estimand',details.estimand],['Identification strategy',details.identification_strategy],['Subject',details.subject],['Keyword',details.keyword],['Units / design',details.population],['Reported findings',details.findings],['Limitations',details.limitations],[details.summaryLabel,details.summary]]){card.createEl('h5',{text:label});this.renderFormattedBlock(card,value,'Not separately recorded in the selected excerpt.')}
   const exact=card.createEl('details');exact.createEl('summary',{text:'Exact excerpt sent to provider'});const raw=exact.createEl('pre',{text:p.text});raw.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto';
  }
  async showServices(area,query='',{autoSearch=false}={}){
@@ -224,7 +320,7 @@ class SearchView extends ItemView{
   this.cancelServices=()=>{cancel();session.closed=true;permission.checked=false;update();if(this.serviceSession===session){this.serviceSession=null;this.invalidateSynthesis=null}};
   const invalidate=()=>{cancel();evidence=[];payload=null;previewKey='';permission.checked=false;update();preview.empty();preview.createEl('p',{text:'Question, evidence or filters changed. Preview again before Generate.'});out.empty()};this.invalidateSynthesis=invalidate;input.oninput=invalidate;mode.onchange=invalidate;permission.onchange=update;
   cfg=await this.plugin.loadData()||{};if(session.closed||this.serviceSession!==session)return;
-  destination.setText('Provider: '+(cfg.provider||'not configured')+' · Model: '+(cfg.model||'not configured'));
+  destination.setText('Provider: '+(cfg.provider||'not configured')+' · Model: '+(cfg.model||'not configured')+' · Semantic: '+(configured('semantic')?'ready':'not configured')+' · Synthesis: '+(configured('synthesis')?'ready':'not configured'));
   const path=require('node:path'),vault=this.app.vault.adapter.getBasePath?.();
   const failure=(stdout,stderr)=>{for(const raw of [stdout,stderr]){try{const data=JSON.parse(raw),message=typeof data.error==='string'?data.error:'';if(/stale|rebuild required|incomplete scoped index|rebuild the index/i.test(message))return 'Semantic index is stale or incomplete. Rebuild semantic index, then retry.';if(/adapter busy/i.test(message))return 'Semantic adapter is busy. Wait; do not remove its lock.'}catch{}}return 'Backend failed. Check local configuration and diagnostics; details suppressed.'};
   const execute=(command,args,data,timeout)=>new Promise((resolve,reject)=>{
@@ -239,19 +335,79 @@ class SearchView extends ItemView{
    try{child.stdin.end(data?JSON.stringify(data):'')}catch{stop();finish(Error('Backend input pipe closed.'))}
   });
   const operation=async(kind,command,args,data,timeout,render)=>{if(session.closed||this.serviceSession!==session)return;cancel();const id=session.sequence;session.active={kind,cancel(){}};cancelButton.disabled=false;update();out.empty();out.createEl('p',{text:'Running '+kind+'…'});try{const result=await execute(command,args,data,timeout);if(current(id)){out.empty();render(result)}}catch(e){if(current(id)){out.empty();out.createEl('p',{text:e.message})}}finally{if(current(id)){session.active=null;cancelButton.disabled=true;update()}}};
-  const gate=kind=>{if(session.closed||this.serviceSession!==session)return false;if(!configured(kind)){out.empty();out.createEl('p',{text:'Service not configured: set explicit repository/executable paths, economyQmdRoot for QMD, or Python/provider/model for synthesis. Nothing started.'});return false}if(!input.value.trim()||input.value.length>4000){out.empty();out.createEl('p',{text:'Enter a question of 1–4000 characters.'});return false}return true};
+  const gate=kind=>{if(session.closed||this.serviceSession!==session)return false;if(!configured(kind)){out.empty();out.createEl('p',{text:'Service not configured: set explicit repository/executable paths, economyQmdRoot for QMD, or Python/provider/model for synthesis. Nothing started.'});if(configDetails)configDetails.open=true;return false}if(!input.value.trim()||input.value.length>4000){out.empty();out.createEl('p',{text:'Enter a question of 1–4000 characters.'});return false}return true};
   previewButton.onclick=()=>{if(session.closed||this.serviceSession!==session)return;invalidate();const candidates=this.selected.size?this.catalog().filter(p=>this.selected.has(p.path)):deepSearch(this.catalog(),input.value).rows.map(r=>r.paper);evidence=candidates.filter(p=>safeNotePath(p.path)&&typeof p.raw==='string'&&p.raw.trim()&&typeof p.title==='string'&&p.title.length<=300).slice(0,6).map(p=>({path:p.path,title:p.title,text:p.raw.slice(0,7000)}));previewKey=key();payload={question:input.value,evidence};preview.empty();for(const p of evidence)this.renderEvidencePreview(preview,p);preview.createEl('p',{text:`${evidence.length} exact excerpts. Only this payload is sent on Generate; preview and permission reset on changes.`});preview.createEl('pre',{text:JSON.stringify(payload,null,2)});if(!evidence.length||Buffer.byteLength(JSON.stringify(payload))>65536){payload=null;preview.createEl('p',{text:'No evidence or payload too large. Narrow the selection.'})}update()};
   generate.onclick=async()=>{if(session.active?.kind==='synthesis')return;if(!payload||previewKey!==key()){invalidate();return}if(!permission.checked||!gate('synthesis'))return;const exact=JSON.parse(JSON.stringify(payload));permission.checked=false;update();return operation('synthesis',cfg.pythonExecutable,[path.join(cfg.repositoryPath,'scripts/synthesize-evidence.py'),'--provider',cfg.provider,'--model',cfg.model,'--vault-root',vault,'--mode','draft-synthesis'],exact,240000,result=>{out.createEl('h4',{text:'Draft — economist-review-needed'});out.createEl('p',{text:typeof result.answer==='string'?result.answer:'No answer returned.'});for(const c of (Array.isArray(result.citations)?result.citations:[])){if(!exact.evidence.some(p=>p.path===c.path&&typeof c.quote==='string'&&p.text.includes(c.quote)))continue;const a=out.createEl('button',{text:c.path});a.onclick=()=>openPaperAction(this.app,{kind:'wiki',target:c.path});out.createEl('blockquote',{text:c.quote})}for(const g of (Array.isArray(result.gaps)?result.gaps:[]))out.createEl('p',{text:String(g)})})};
   const qmdArgs=command=>[path.join(cfg.repositoryPath,'scripts/qmd-adapter.cjs'),command,'--vault',path.join(vault,'economy_wiki'),'--tool-root',cfg.economyQmdRoot];
   run.onclick=()=>{if(!gate('semantic'))return;return operation('semantic query',cfg.nodeExecutable,[...qmdArgs('query'),'--lex',input.value,'--vec',input.value,'--mode',mode.value],null,240000,result=>{if(!Array.isArray(result.results))throw Error('Invalid semantic results.');const rows=result.results.slice(0,100);out.createEl('p',{text:`${result.results.length} results · ${result.mode} · reranking ${result.rerankingValidated?'executed':'off/unverified'}. Showing at most 100.`});for(const r of rows){const target='economy_wiki/'+r.relativePath;if(!safeNotePath(target))continue;const paper=this.catalog().find(p=>p.path===target);if(!paper||!this.app.vault.getAbstractFileByPath(target))continue;out.createEl('h4',{text:paper.title});this.renderPaperActions(out,paper);out.createEl('p',{text:String(r.snippet||r.body||'').slice(0,7000)})}})};
   rebuild.onclick=()=>{if(!gate('semantic'))return;return operation('semantic rebuild',cfg.nodeExecutable,qmdArgs('build'),null,720000,result=>out.createEl('p',{text:'Semantic index rebuilt: '+result.stagedDocuments+' research notes.'}))};
-  cancelButton.onclick=()=>{cancel();permission.checked=false;update();out.empty();out.createEl('p',{text:'Operation cancelled.'})};if(autoSearch)await run.onclick();
+  cancelButton.onclick=()=>{cancel();permission.checked=false;update();out.empty();out.createEl('p',{text:'Operation cancelled.'})};
+  const configDetails=area.createEl('details');
+  configDetails.setAttribute('aria-label','Service configuration settings');
+  configDetails.style.cssText='margin:12px 0;padding:10px;border:1px solid var(--background-modifier-border);border-radius:6px';
+  configDetails.createEl('summary',{text:'Service configuration & diagnostics — click to expand'});
+  configDetails.createEl('p',{text:'Semantic search (local QMD) and Grounded synthesis (Hermes LLM) are optional backends requiring explicit executable paths in local plugin data. For zero-config local extractive AI retrieval from your notes without QMD or API setup, use the "Ask this collection" button in the top toolbar.'});
+  const configGrid=configDetails.createDiv();
+  configGrid.style.cssText='display:grid;grid-template-columns:160px 1fr;gap:6px 12px;align-items:center;margin:8px 0';
+  const configInputs={};
+  for(const [key,label,hint]of [
+   ['repositoryPath','Repository path','Absolute path to Ecomony_wiki repository'],
+   ['nodeExecutable','Node.js executable','Absolute path to node (e.g. /opt/homebrew/bin/node)'],
+   ['economyQmdRoot','QMD tool root','Absolute path to private QMD directory with @tobilu/qmd 2.8.3'],
+   ['pythonExecutable','Python executable','Absolute path to Python 3.10+ (e.g. /usr/bin/python3)'],
+   ['provider','LLM Provider','Hermes provider name (e.g. approved-provider)'],
+   ['model','LLM Model','Hermes model name (e.g. approved-model)']
+  ]){
+   configGrid.createEl('label',{text:label});
+   const inp=configGrid.createEl('input',{value:cfg[key]||'',placeholder:hint});
+   inp.setAttribute('aria-label',label+' setting');
+   inp.style.minWidth='0';
+   configInputs[key]=inp;
+  }
+  const configBtnRow=configDetails.createDiv();
+  configBtnRow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px';
+  const detectBtn=configBtnRow.createEl('button',{text:'Detect local system paths'});
+  detectBtn.onclick=()=>{
+   const fs=require('node:fs'),os=require('node:os');
+   if(!configInputs.repositoryPath.value.trim()){
+    if(cfg.repositoryPath)configInputs.repositoryPath.value=cfg.repositoryPath;
+    else{const candidate='/Users/Violet1/Documents/캡스톤디자인/Ecomony_wiki';if(fs.existsSync(candidate))configInputs.repositoryPath.value=candidate}
+   }
+   for(const c of ['/opt/homebrew/bin/node','/usr/local/bin/node','/usr/bin/node'])if(!configInputs.nodeExecutable.value.trim()&&fs.existsSync(c)){configInputs.nodeExecutable.value=c;break}
+   for(const c of ['/opt/homebrew/bin/python3','/usr/local/bin/python3','/usr/bin/python3'])if(!configInputs.pythonExecutable.value.trim()&&fs.existsSync(c)){configInputs.pythonExecutable.value=c;break}
+   const home=os.homedir?.()||process.env.HOME||'';
+   const defaultQmd=path.join(home,'.economy-qmd');
+   if(!configInputs.economyQmdRoot.value.trim()&&fs.existsSync(defaultQmd))configInputs.economyQmdRoot.value=defaultQmd;
+   configStatus.setText('Detected available system paths. Review and click "Save service settings" to apply.');
+  };
+  const saveBtn=configBtnRow.createEl('button',{text:'Save service settings'});
+  const configStatus=configDetails.createEl('p');
+  saveBtn.onclick=async()=>{
+   saveBtn.disabled=true;
+   try{
+    const latest=await this.plugin.loadData()||{};
+    for(const [k,inp]of Object.entries(configInputs)){
+     const v=inp.value.trim();
+     if(v)latest[k]=v;else delete latest[k];
+    }
+    await this.plugin.saveData(latest);
+    configStatus.setText('Service settings saved. Reopening panel…');
+    await this.showServices(area,input.value);
+   }catch(err){
+    configStatus.setText('Failed to save settings: '+(err.message||err));
+   }finally{
+    saveBtn.disabled=false;
+   }
+  };
+  this.activeKeywordPanel=()=>this.showServices(area,input.value);
+  this.scrollPanelIntoView(area);
+  if(autoSearch)await run.onclick();
  }
  async showCompleteness(area){
   this.clearPanel(area);const token={};this.completenessToken=token;area.createEl('h3',{text:'Evidence completeness — recorded presence only'});area.createEl('p',{text:'Not a quality score, causal identification, economist approval or independent replication. Missing originals and structured fields remain unknown; theory may need explicit not-applicable explanations.'});
   const filter=area.createEl('select');filter.setAttribute('aria-label','Missing evidence information');filter.createEl('option',{value:'',text:'All records'});for(const [value,text]of Object.entries(completenessLabels))filter.createEl('option',{value,text:'Missing: '+text});filter.value='';const out=area.createDiv();let page=0,sequence=0;
   const render=async()=>{const seq=++sequence,rows=[];for(const paper of this.catalog()){let actions=[];try{actions=await resolvePaperActions(this.app,paper)}catch{}const completeness=evidenceCompleteness(paper,{actions});if(!filter.value||!completeness.fields[filter.value])rows.push({paper,completeness})}if(this.completenessToken!==token||seq!==sequence)return;out.empty();out.createEl('p',{text:rows.length+' matching records · showing at most 25 per page'});page=Math.min(page,Math.max(0,Math.ceil(rows.length/25)-1));for(const {paper,completeness:c}of rows.slice(page*25,page*25+25)){const card=out.createDiv();card.createEl('h4',{text:paper.title});card.createEl('p',{text:'Declared access: '+c.access+' · Review: '+c.review});card.createEl('p',{text:'Missing: '+(c.missing.map(k=>completenessLabels[k]).join('; ')||'No inventoried fields')});card.createEl('pre',{text:JSON.stringify(c.numerical,null,2)});for(const [key,label]of [['estimand','Estimand'],['identification_strategy','Identification'],['sample_period','Sample period'],['dataset_vintage','Dataset vintage']])card.createEl('p',{text:label+': '+(paperFrontmatter(paper.raw)[key]||'Not recorded')});for(const e of recordedLocators(paperFrontmatter(paper.raw)))card.createEl('p',{text:'Recorded locator: '+e.locator+(e.page===null?' — PDF page mapping unavailable':' — declared checked PDF index '+e.page)});const data=paper.raw??paper.text??'';this.renderWarnings(card,{...paper,raw:data});await this.renderPaperActions(card,paper)}for(const [label,offset]of [['Previous evidence page',-1],['Next evidence page',1]]){const b=out.createEl('button',{text:label});b.disabled=page+offset<0||(page+offset)*25>=rows.length;b.onclick=()=>{if(!b.disabled){page+=offset;return render()}}}};
-  filter.onchange=()=>{page=0;return render()};await render();
+  filter.onchange=()=>{page=0;return render()};await render();this.scrollPanelIntoView(area);
  }
  renderWarnings(area,paper){for(const w of evidenceWarnings(paper,this.index||[]))area.createEl('p',{text:'['+w.status+'] '+w.message+(w.target?' — '+w.target:'')})}
  async showProposals(area){
@@ -260,6 +416,7 @@ class SearchView extends ItemView{
   const update=()=>{apply.disabled=this.proposalSession!==session||!inspection||!confirmation.checked||!decisions?.decisions.every(d=>['accept','reject'].includes(d.decision))};const invalidate=()=>{proposal=null;inspection=null;decisions=null;confirmation.checked=false;previewArea.empty();status.empty();update()};input.oninput=invalidate;confirmation.onchange=update;
   previewButton.onclick=async()=>{invalidate();try{const cfg=await this.plugin.loadData()||{};if(this.proposalSession!==session)return;const path=require('node:path');if(typeof cfg.repositoryPath!=='string'||!path.isAbsolute(cfg.repositoryPath))throw Error('Configure an explicit absolute repositoryPath for the local proposal engine.');api=require(path.join(cfg.repositoryPath,'scripts/topic-proposals.cjs'));if(api.DOMAIN?.wiki!=='economy_wiki'||api.DOMAIN?.reviewStatus!=='economist-review-needed')throw Error('Wrong proposal engine domain');proposal=JSON.parse(input.value);inspection=api.inspectProposal({vaultRoot:this.app.vault.adapter.getBasePath?.(),proposal});previewInput=input.value;decisions=JSON.parse(JSON.stringify(inspection.decisionTemplate));previewArea.createEl('pre',{text:JSON.stringify(inspection,null,2)});for(const d of decisions.decisions){const select=previewArea.createEl('select');select.setAttribute('aria-label','Decision '+d.id);for(const [value,text]of [['','Choose accept or reject'],['accept','Accept '+d.id],['reject','Reject '+d.id]])select.createEl('option',{value,text});select.value='';select.onchange=()=>{d.decision=select.value;confirmation.checked=false;update()}}update()}catch(e){inspection=null;status.createEl('p',{text:e.message});update()}};
   apply.onclick=async()=>{update();if(apply.disabled)return;if(input.value!==previewInput){invalidate();return}apply.disabled=true;confirmation.checked=false;const payload={vaultRoot:this.app.vault.adapter.getBasePath?.(),proposal,decisions};inspection=null;try{const receipt=api.applyProposal(payload);status.empty();status.createEl('pre',{text:JSON.stringify(receipt,null,2)});status.createEl('p',{text:'Refresh wiki to read changed content. Inspect durable history; complete receipts are not economist approval. Update index/log separately after authorized integration.'})}catch(e){status.empty();status.createEl('p',{text:e.message});if(e.receipt)status.createEl('pre',{text:JSON.stringify(e.receipt,null,2)})}update()};
+  this.scrollPanelIntoView(area);
  }
  async showLifecycle(area){
   this.clearPanel(area);area.createEl('h3',{text:'Claim provenance and dependency freshness'});area.createEl('p',{text:'Hash freshness is not economic validation. Existing notes are not automatically converted into claim records. No claims means no coverage.'});
@@ -268,22 +425,23 @@ class SearchView extends ItemView{
   area.createEl('p',{text:`${claims.length} valid claim records · ${invalid} invalid · ${Object.keys(hashes).length} sources byte-checked`});for(const d of assessDependencies(claims,hashes))area.createEl('p',{text:d.id+' — '+d.state+' — '+d.reason});
   area.createEl('h4',{text:'Content-pinned review receipts'});area.createEl('p',{text:'Receipts must be created by an explicit authorized human action using the review CLI. This view verifies hashes only; identity and economic decisions are not authenticated.'});const receipts=this.app.vault.getFiles().filter(f=>/^economy_wiki\/Review\/receipts\/[^/]+\.json$/.test(f.path));
   for(const f of receipts){try{const data=JSON.parse(await this.readScoped(f));if(!/^economy_wiki\/(Literature|Topics|Datasets|Policies|Methods|Theories|Analyses|Comparisons|Queries)\//.test(data.targetPath)||data.targetPath.includes('..'))throw Error('invalid target');const target=this.app.vault.getAbstractFileByPath(data.targetPath);area.createEl('p',{text:data.targetPath+' — '+(target?verifyReview(await this.readScoped(target),data.receipt).state:'missing')})}catch(e){area.createEl('p',{text:f.path+' — invalid: '+e.message})}}
+  this.scrollPanelIntoView(area);
  }
- async showDeep(area,query){this.clearPanel(area);area.createEl('h3',{text:'Deeper search — local BM25 + graph'});area.createEl('p',{text:'Lexical/graph fusion, not semantic embeddings. Reads only compiled research folders; no cloud or model calls.'});const input=area.createEl('input',{value:query,placeholder:'Research question or keywords'}),out=area.createDiv();area.createEl('button',{text:'Run deeper search'}).onclick=async()=>{out.empty();const ix=this.catalog();const result=deepSearch(ix,input.value);for(const r of result.rows){const a=out.createEl('a',{text:r.paper.title,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(r.paper.path,'',true)};out.createEl('p',{text:r.reason+' · score '+r.score.toFixed(3)});out.createEl('p',{text:r.paper.findings||r.paper.summary||'No findings stored'})}out.createEl('p',{text:String(result.limitations)})};
- }
+ async showDeep(area,query){this.clearPanel(area);area.createEl('h3',{text:'Deeper search — local BM25 + graph'});area.createEl('p',{text:'Lexical/graph fusion, not semantic embeddings. Reads only compiled research folders; no cloud or model calls.'});const input=area.createEl('input',{value:query,placeholder:'Research question or keywords'}),out=area.createDiv();area.createEl('button',{text:'Run deeper search'}).onclick=async()=>{out.empty();const ix=this.catalog();const result=deepSearch(ix,input.value);for(const r of result.rows){const a=out.createEl('a',{text:r.paper.title,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(r.paper.path,'',true)};out.createEl('p',{text:r.reason+' · score '+r.score.toFixed(3)});out.createEl('p',{text:r.paper.findings||r.paper.summary||'No findings stored'})}out.createEl('p',{text:String(result.limitations)})};this.scrollPanelIntoView(area)}
  showComparison(area){
   this.clearPanel(area);area.createEl('h3',{text:'Side-by-side study comparison'});const selected=this.index.filter(p=>!isBibliographicNavigation(p)&&this.selected.has(p.path));
-  area.createEl('p',{text:`${selected.length} selected notes. No indirect policy comparison or economic equivalence is implied. Missing values remain unknown.`});if(!selected.length)return;
+  area.createEl('p',{text:`${selected.length} selected notes. No indirect policy comparison or economic equivalence is implied. Missing values remain unknown.`});if(!selected.length){this.scrollPanelIntoView(area);return}
   for(const p of selected){area.createEl('h4',{text:p.title});this.renderWarnings(area,p);this.renderPaperActions(area,p)}
   const wrap=area.createDiv();wrap.style.overflow='auto';const table=wrap.createEl('table');const head=table.createEl('tr');head.createEl('th',{text:'Evidence dimension'});for(const p of selected){const cell=head.createEl('th');const a=cell.createEl('a',{text:p.title,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(p.path,'',true)}}
-  for(const [key,label]of [['evidence_kind','Evidence kind (declared, not validated)'],['research_question','Research question'],['identification_strategy','Identification strategy'],['estimand','Estimand'],['country','Country'],['product','Product'],['method','Method'],['population','Units / design'],['findings','Estimates and uncertainty — as stored'],['limitations','Limitations'],['evidence','Evidence scope'],['summary','Stored abstract / summary']]){const row=table.createEl('tr');row.createEl('th',{text:label});for(const p of selected){const cell=row.createEl('td',{text:p[key]||'Unknown / not separately extracted'});cell.style.cssText='min-width:280px;max-width:500px;white-space:pre-wrap;vertical-align:top'}}
+  for(const [key,label]of [['evidence_kind','Evidence kind (declared, not validated)'],['research_question','Research question'],['identification_strategy','Identification strategy'],['estimand','Estimand'],['country','Country'],['product','Product'],['method','Method'],['subject','Subject'],['keyword','Keyword'],['population','Units / design'],['findings','Estimates and uncertainty — as stored'],['limitations','Limitations'],['evidence','Evidence scope'],['summary','Stored abstract / summary']]){const row=table.createEl('tr');row.createEl('th',{text:label});for(const p of selected){const cell=row.createEl('td',{text:p[key]||'Unknown / not separately extracted'});cell.style.cssText='min-width:280px;max-width:500px;white-space:pre-wrap;vertical-align:top'}}
+  this.scrollPanelIntoView(area);
  }
- showInbox(area){this.clearPanel(area);area.createEl('h3',{text:'Review and maintenance inbox'});area.createEl('p',{text:'Metadata and extraction gaps only. Missing correction-check dates do not mean a correction exists; no online correction/retraction search has run.'});const rows=reviewInbox(this.index);area.createEl('p',{text:`${rows.length} notes needing attention`});for(const r of rows){const a=area.createEl('a',{text:r.paper.title,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(r.paper.path,'',true)};area.createEl('p',{text:r.reasons.join(' · ')})}}
+ showInbox(area){this.clearPanel(area);area.createEl('h3',{text:'Review and maintenance inbox'});area.createEl('p',{text:'Metadata and extraction gaps only. Missing correction-check dates do not mean a correction exists; no online correction/retraction search has run.'});const rows=reviewInbox(this.index);area.createEl('p',{text:`${rows.length} notes needing attention`});for(const r of rows){const a=area.createEl('a',{text:r.paper.title,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(r.paper.path,'',true)};area.createEl('p',{text:r.reasons.join(' · ')})}this.scrollPanelIntoView(area)}
  showTopics(area,query){this.clearPanel(area);area.createEl('h3',{text:'Topic evidence workspace'});area.createEl('p',{text:'Compiled topic notes are synthesis; a matching-paper list is not synthesis. Existing review states remain unchanged.'});for(const p of this.index.filter(p=>p.path.includes('/Topics/')&&!isBibliographicNavigation(p))){const a=area.createEl('a',{text:p.title,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(p.path,'',true)};area.createEl('p',{text:p.summary||'No summary stored'})}
   const q=area.createEl('input',{placeholder:'Topic or evidence question',value:query});const list=area.createDiv();area.createEl('button',{text:'Build evidence worksheet'}).onclick=()=>{list.empty();const {rows}=enhancedSearch(this.index.filter(p=>!isBibliographicNavigation(p)).map(p=>({path:p.path,text:p.raw})),q.value);list.createEl('p',{text:`${rows.length} matching notes. Source-linked worksheet, not an AI-generated synthesis; disagreements and applicability need review.`});for(const p of rows){list.createEl('h4',{text:p.title});const a=list.createEl('a',{text:'Open evidence note',href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(p.path,'',true)};const t=list.createEl('p',{text:p.findings||p.summary||'No extracted findings'});t.style.whiteSpace='pre-wrap';list.createEl('p',{text:'Limits: '+(p.limitations||'Not recorded')})}};
+  this.scrollPanelIntoView(area);
  }
- showAsk(area,query){this.clearPanel(area);area.createEl('h3',{text:'Ask this collection — local evidence mode'});area.createEl('p',{text:'Local extractive answers only: quotations with note citations, not LLM economic synthesis. No provider or data upload. Use focused keywords; selected comparison notes constrain retrieval when selected.'});const input=area.createEl('input',{placeholder:'Question / keywords',value:query});const out=area.createDiv();area.createEl('button',{text:'Find cited evidence'}).onclick=()=>{out.empty();const answer=evidenceAnswer(this.catalog(),input.value,[...this.selected]);for(const claim of answer.claims){out.createEl('h4',{text:claim.title});out.createEl('blockquote',{text:claim.quote});const a=out.createEl('a',{text:claim.section+' — '+claim.path,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(claim.path,'',true)}}for(const gap of answer.gaps)out.createEl('p',{text:gap});if(!answer.claims.length)out.createEl('p',{text:'No source passages retrieved. This does not establish absence of evidence.'})};
- }
+ showAsk(area,query){this.clearPanel(area);area.createEl('h3',{text:'Ask this collection — local evidence mode'});area.createEl('p',{text:'Local extractive answers only: quotations with note citations, not LLM economic synthesis. No provider or data upload. Use focused keywords; selected comparison notes constrain retrieval when selected.'});const input=area.createEl('input',{placeholder:'Question / keywords',value:query});const out=area.createDiv();area.createEl('button',{text:'Find cited evidence'}).onclick=()=>{out.empty();const answer=evidenceAnswer(this.catalog(),input.value,[...this.selected]);for(const claim of answer.claims){out.createEl('h4',{text:claim.title});out.createEl('blockquote',{text:claim.quote});const a=out.createEl('a',{text:claim.section+' — '+claim.path,href:'#'});a.onclick=e=>{e.preventDefault();this.app.workspace.openLinkText(claim.path,'',true)}}for(const gap of answer.gaps)out.createEl('p',{text:gap});if(!answer.claims.length)out.createEl('p',{text:'No source passages retrieved. This does not establish absence of evidence.'})};this.scrollPanelIntoView(area)}
  catalog(includeNavigation=false){return (this.index||[]).filter(p=>(includeNavigation||!isBibliographicNavigation(p))&&Object.entries(this.filters||{}).every(([k,v])=>!v.value.trim()||String(p[k]||'').toLowerCase()===v.value.trim().toLowerCase()))}
  async renderPaperActions(area,paper){
   const controls=area.createDiv();controls.setAttribute('role','group');controls.setAttribute('aria-label','Paper navigation: '+paper.title);controls.createEl('small',{text:'Checking source navigation…'});
@@ -330,7 +488,7 @@ class SearchView extends ItemView{
   }
   area.scrollIntoView({behavior:'smooth',block:'start'});
  }
- showNotebook(area){return showNotebookPanel.call(this,area)}
+ showNotebook(area){const res=showNotebookPanel.call(this,area);this.scrollPanelIntoView(area);return res}
  async onClose(){this.closed=true;this.loadSequence++;this.stopVaultWatch?.();this.activeKeywordPanel=null;this.proposalSession=null;this.completenessToken=null;this.cancelServices?.();clearTimeout(this.timer)}
 }
 module.exports=class extends Plugin{

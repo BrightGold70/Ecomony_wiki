@@ -34,7 +34,7 @@ function expandQuery(query){
  return {groups,expansions};
 }
 function enhancedSearch(notes,query,filters={}){
- if(!filters||typeof filters!=='object'||Array.isArray(filters)||Object.entries(filters).some(([k,v])=>!['country','product','method','evidence_kind'].includes(k)||typeof v!=='string'))throw new TypeError('Unsupported filter; use country, product, method, evidence_kind scalar strings');
+ if(!filters||typeof filters!=='object'||Array.isArray(filters)||Object.entries(filters).some(([k,v])=>!['country','product','method','evidence_kind','subject','keyword'].includes(k)||typeof v!=='string'))throw new TypeError('Unsupported filter; use country, product, method, evidence_kind, subject, keyword scalar strings');
  const {groups,expansions}=expandQuery(query);if(!groups.length)return {rows:[],expansions};
  const rows=[];
  for(const note of notes){

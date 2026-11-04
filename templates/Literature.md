@@ -5,6 +5,8 @@ updated: ""
 country: ""
 product: ""
 method: ""
+subject: ""
+keyword: ""
 type: summary
 tags: []
 sources: []

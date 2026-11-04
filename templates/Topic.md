@@ -4,6 +4,8 @@ created: ""
 updated: ""
 evidence_kind: ""
 research_question: ""
+subject: ""
+keyword: ""
 type: concept
 tags: []
 sources: []
