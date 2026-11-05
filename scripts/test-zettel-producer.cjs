@@ -142,7 +142,7 @@ test('all nine compiled categories and Sources are authorized pinned evidence an
  const folders=['Literature','Topics','Datasets','Policies','Methods','Theories','Analyses','Comparisons','Queries','Sources'];
  for(const folder of folders){const f=fixture(t),target='economy_wiki/'+folder+'/target.md';fs.mkdirSync(path.dirname(path.join(f.vault,target)),{recursive:true});fs.writeFileSync(path.join(f.vault,target),f.source);const e={...f.proposal.notes[0].evidence[0],source:target};f.proposal.notes.push({path:'economy_wiki/Review/readability-pilot/target.md',type:'study-essential-summary',title:'Synthetic economics essentials',target_path:target,target_sha256:sha(f.source),essential_finding:'Synthetic only.',population_comparison:'Synthetic sample; no causal identification.',key_result:'Ten synthetic observations.',main_limitation:'Fixture only.',relevance_to_question:'Test question only.',questions:[f.proposal.notes[1].path],evidence:[e]});const r=f.run();assert.equal(r.status,0,folder+': '+r.stderr);}
 });
-test('all targets are preflighted before apply; symlinks and output aliases fail closed',t=>{ 
+test('all targets are preflighted before apply; symlinks and output aliases fail closed',t=>{
  const f=fixture(t);fs.mkdirSync(path.join(f.vault,'economy_wiki/Questions'));fs.writeFileSync(path.join(f.vault,f.proposal.notes[1].path),'Existing');
  assert.notEqual(f.run(['--apply']).status,0);assert.ok(!fs.existsSync(path.join(f.vault,f.proposal.notes[0].path)));
  fs.symlinkSync(f.vault,path.join(f.dir,'alias'));assert.notEqual(f.run(['--out',path.join(f.dir,'alias/report.json')]).status,0);
