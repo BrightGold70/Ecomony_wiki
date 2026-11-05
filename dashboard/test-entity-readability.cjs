@@ -7,7 +7,7 @@ class Element{
 }
 const note=(id,title,meta='',folder='Literature')=>({path:`economy_wiki/${folder}/${id}.md`,text:`---\ncountry: Korea\nproduct: steel\nmethod: DiD\nevidence_kind: causal\n${meta}\n---\n# ${title}\n## Abstract\nFull stored summary ${id}.\n## Scope and design\nKorean steel units.\n## Reported findings\nStored estimate ${id}.\n## Limitations\nNot causal verification.`});
 async function setup(notes,preferences={},bundled=false){let factory;const opens=[];class Plugin{registerView(_,f){factory=f}addCommand(){}addRibbonIcon(){}registerObsidianProtocolHandler(){}async loadData(){return preferences}}class ItemView{constructor(){this.contentEl=new Element();this.app={vault:{getMarkdownFiles:()=>notes,read:async f=>f.text,getAbstractFileByPath:p=>notes.find(f=>f.path===p),adapter:{}},workspace:{openLinkText:async(...args)=>opens.push(args)}}}}
- const sandbox={module:{exports:{}},require:n=>n==='obsidian'?{Plugin,ItemView}:require(n.startsWith('node:')?n:path.resolve(__dirname,n)),setTimeout,clearTimeout,console};vm.runInNewContext(fs.readFileSync(path.join(__dirname,bundled?'../dist/economy-keyword-search/main.js':'keyword-main.js'),'utf8'),sandbox);const plugin=new sandbox.module.exports();await plugin.onload();const v=factory({});v.readScoped=async f=>f.text;await v.onOpen();return {v,opens};}
+ const sandbox={module:{exports:{}},require:n=>n==='obsidian'?{Plugin,ItemView}:require(n.startsWith('node:')?n:path.resolve(__dirname,n)),setTimeout,clearTimeout,console};vm.runInNewContext(bundled?require('../scripts/build.cjs').buildDashboard({stdout:true}):fs.readFileSync(path.join(__dirname,'keyword-main.js'),'utf8'),sandbox);const plugin=new sandbox.module.exports();await plugin.onload();const v=factory({});v.readScoped=async f=>f.text;await v.onOpen();return {v,opens};}
 const field=(v,label)=>v.contentEl.all().find(e=>e.attrs['aria-label']===label),button=(v,text)=>v.contentEl.all().find(e=>e.tag==='button'&&e.text===text),titles=v=>v.contentEl.all().filter(e=>e.attrs['data-result-title']).map(e=>e.text);
 const prefs={researchEntities:[{field:'country',value:'Korea',label:'My Korea'},{field:'method',value:'missing',label:'Empty'}]};
 test('compact chooser retains exact navigation and closed recent previews independent of active filters and refresh',async()=>{
@@ -19,7 +19,7 @@ test('compact chooser retains exact navigation and closed recent previews indepe
 test('entity cards show full clickable titles, complete summaries, scope, findings, citations, metadata and actions within category roles',async()=>{
  const full='Full title '.repeat(40),notes=[note('old',full,'year: 2020\ndoi: 10.1234/example\nestimand: ATT'),note('new','New literature','version: 2024'),note('topic','Topic synthesis','year: 2026','Topics')],{v,opens}=await setup(notes,prefs);v.filters.country.value='Japan';await button(v,'My Korea entity').onclick();
  const cards=v.contentEl.all().filter(e=>e.attrs['data-entity-path']);assert.deepEqual(cards.map(e=>e.attrs['data-entity-path']),[notes[1].path,notes[0].path,notes[2].path]);assert.ok(v.contentEl.all().some(e=>e.text==='Literature (2)'));assert.ok(v.contentEl.all().some(e=>e.text==='Topics (1)'));
- const card=cards[1],title=card.all().find(e=>e.tag==='a'&&e.text===full);assert.ok(title);await title.onclick({preventDefault(){}});assert.deepEqual(opens.at(-1),[notes[0].path,'','split']);for(const text of ['Full stored summary old.','Korean steel units.','Stored estimate old.','10.1234/example','ATT'])assert.ok(card.contents().includes(text),text);for(const label of ['Stored abstract — expand to read','Scope / units / design','Findings / numerical outcomes','Citation / recorded metadata','Open actions'])assert.ok(card.all().some(e=>e.tag==='summary'&&e.text===label),label);assert.match(card.contents(),/Publication date: 2020/);assert.equal(v.filters.country.value,'Japan');
+ const card=cards[1],title=card.all().find(e=>e.tag==='a'&&e.text===full);assert.ok(title);await title.onclick({preventDefault(){}});assert.deepEqual(opens.at(-1),[notes[0].path,'','split']);for(const text of ['Full stored summary old.','Korean steel units.','Stored estimate old.','10.1234/example','ATT'])assert.ok(card.contents().includes(text),text);for(const label of ['Published abstract — expand full text','Scope / units / design','Findings / numerical outcomes','Citation / recorded metadata','Open actions'])assert.ok(card.all().some(e=>e.tag==='summary'&&e.text===label),label);assert.match(card.contents(),/Publication date: 2020/);assert.equal(v.filters.country.value,'Japan');
 });
 test('entity references render markdown tables as html tables with header and cells',async()=>{
  const tableNote=note('tbl','Table Study');
@@ -40,13 +40,13 @@ test('entity references render inline bold, italic and code formatting',async()=
  await button(v,'My Korea entity').onclick();
  const card=v.contentEl.all().find(e=>e.attrs['data-entity-path']===boldNote.path);
  assert.ok(card);
- const strongs=card.all().filter(e=>e.tag==='strong').map(e=>e.text);
+ const strongs=card.all().filter(e=>e.tag==='strong').map(e=>e.all().map(n=>n.text).join(''));
  assert.ok(strongs.includes('Setting'),'must render bold Setting in strong tag');
  assert.ok(strongs.includes('Estimates'),'must render bold Estimates in strong tag');
  assert.ok(strongs.includes('+4.2%'),'must render bold +4.2% in strong tag');
- const ems=card.all().filter(e=>e.tag==='em').map(e=>e.text);
+ const ems=card.all().filter(e=>e.tag==='em').map(e=>e.all().map(n=>n.text).join(''));
  assert.ok(ems.includes('p'),'must render italic p in em tag');
- const codes=card.all().filter(e=>e.tag==='code').map(e=>e.text);
+ const codes=card.all().filter(e=>e.tag==='code').map(e=>e.all().map(n=>n.text).join(''));
  assert.ok(codes.includes('2SLS'),'must render code 2SLS in code tag');
 });
 test('blank browsing defaults recent; keyword transitions use relevance; explicit sorting and pagination reset preserve all nine economics categories',async()=>{

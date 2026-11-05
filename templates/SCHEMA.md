@@ -46,6 +46,12 @@ Record dataset provider/query, vintage, classification edition/concordance, unit
 
 Newly computed numbers need real dataset/code/environment/execution/output provenance. LLM or NotebookLM text is not computation provenance. Synthetic fixtures are labelled and cannot establish empirical replication.
 
+## Questions, ideas and essential-summary sidecars
+
+Ideas and Questions are separate from the nine compiled categories and study counts. Use the blank Idea, Question and Study-essential-summary templates with inline JSON questions/relations/evidence_records. Draft state is economist-review-needed. Producer outputs only create-only Ideas/Questions or Review/readability-pilot sidecars; summary target_path/target_sha256 bind complete current bytes in Sources or any compiled category. Never alter collector Sources or target notes to add a sidecar. Five exact essential headings: Essential finding; Population and comparison; Key result; Main limitation; Relevance to question. Apply economics meanings (setting/sample, estimand/specification/units, identification assumptions or not applicable, data vintage and replication provenance), never fabricated causal identification.
+
+Each evidence binding records exact source path/hash/version/line-range/quote; evidence_records IDs bind content and location. Each typed relation needs a reason and suggested/recorded state; see docs/ZETTEL_WORKFLOW.md in the construction repository for canonical vocabulary/aliases and explicit independence limits. Maintain overlapping dataset/sample IDs; working-paper/journal versions do not establish independent confirmation. Shared parser completeness, local integrity and recorded state are not economist approval. Use the separate read-only zettel audit; lint/registry/index refresh do not substitute for it or substantive integration.
+
 ## Review and maintenance
 
 Allowed review_status: economist-review-needed, economist-reviewed. Reviewed status requires named reviewer, reviewed_date, review_scope, review_decision and explicit human authorization; software does not authenticate identity. Confidence and structural checks do not validate econometrics or authorize policy advice.

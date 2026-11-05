@@ -50,6 +50,10 @@ A dropped PDF alone is not processed knowledge. If topic integration remains pen
 - Reproduced: requires actual execution record and comparison; synthetic examples only test mechanics.
 - Current hash: bytes match, not evidence is scientifically current.
 
+## Connected reading, questions and ideas
+
+Follow the [bounded Zettelkasten route](ZETTEL_WORKFLOW.md): inspected records → five explicit essentials → one-proposition Ideas → evidence-organized Question map → economist review. Open exact supporting passages and separate recorded relations from suggestions. Missing essentials stay pending; overlapping datasets and publication versions are not independent support. Keep detailed summaries/abstracts expandable. All nine compiled categories remain available; use the dashboard’s actual role/category filters without treating a filter label as evidence validation.
+
 ## 6. Maintain and review
 
 After intake use Refresh wiki; optional semantic search has a separate index. Open Database health to inspect the latest saved audit when reports have been configured. Missing metadata, duplicate candidates, broken links, orphan notes and changed dependencies are repair requests—not automatic conclusions.

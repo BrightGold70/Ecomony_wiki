@@ -8,9 +8,9 @@ function initWiki(vault){
  'Setup/Workflow.md':'# Workflow\n\n1. Define scope.\n2. Record available DOI, RePEc or other stable identifiers and check duplicates.\n3. Record source, version, access date and evidence actually read.\n4. Extract reported findings separately from interpretation.\n5. Obtain named, dated economist review before promoting synthesis.\n6. Link related publications without assuming independent samples.\n\nNo automated collection is configured. Read Templates/Indexing-metadata.md after the first Source/Literature pair: inspected keywords and optional MeSH are a separate offline metadata step, never inferred from prose.\n',
  'Review/Review-ledger.md':'# Review ledger\n\n| Note | Reviewer | Date | Evidence reviewed | Decision / corrections |\n|---|---|---|---|---|\n',
  };
- const directories=['Claims','Literature','Sources','Topics','Datasets','Policies','Methods','Theories','Analyses','Comparisons','Queries','raw','Templates','Setup','Review'];
+ const directories=['Claims','Ideas','Questions','Literature','Sources','Topics','Datasets','Policies','Methods','Theories','Analyses','Comparisons','Queries','raw','Templates','Setup','Review','Review/readability-pilot'];
  files['SCHEMA.md']=fs.readFileSync(path.join(template,'SCHEMA.md'),'utf8');
- files['index.md']='# Wiki index\n\nHuman-readable catalogue; add each compiled page with a one-line summary.\n\n## Literature\n\n## Topics\n\n## Datasets\n\n## Policies\n\n## Methods\n\n## Theories\n\n## Analyses\n\n## Comparisons\n\n## Saved queries\n';
+ files['index.md']='# Wiki index\n\nHuman-readable catalogue; add each compiled page with a one-line summary.\n\n## Literature\n\n## Topics\n\n## Datasets\n\n## Policies\n\n## Methods\n\n## Theories\n\n## Analyses\n\n## Comparisons\n\n## Saved queries\n\n## Questions\n\n## Ideas\n';
  files['log.md']='# Wiki activity log\n\nAppend-only: date, action, source/version, changed paths, unresolved questions and reviewer. No source ingestion has run.\n';
  for(const name of fs.readdirSync(template))if(name.endsWith('.md')&&name!=='SCHEMA.md')files['Templates/'+name]=fs.readFileSync(path.join(template,name),'utf8');
  // Reject every unsafe destination before making the first change.

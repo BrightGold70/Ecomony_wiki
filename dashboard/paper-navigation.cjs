@@ -72,4 +72,4 @@ async function openPaperAction(app,action,external){
  // Obsidian Workspace.openLinkText accepts PaneType | boolean; 'split' retains the dashboard.
  await app.workspace.openLinkText(action.target,'','split');return true;
 }
-module.exports={resolvePaperActions,openPaperAction,paperFrontmatter,recordedLocators};
+module.exports={resolvePaperActions,openPaperAction,paperFrontmatter,recordedLocators,safePaperPath,verifiedPaperFile};

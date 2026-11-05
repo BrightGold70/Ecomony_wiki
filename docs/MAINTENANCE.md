@@ -2,6 +2,10 @@
 
 Daily article arrival needs two processes. Structural reconciliation detects changed files, identity/metadata/link issues and explicit dependency impacts. Knowledge integration compares the new evidence with existing topics and proposes revised interpretations for economist review. A script does not replace the latter.
 
+## Connected-note audit
+
+Use [Zettel workflow / 한국어](ZETTEL_WORKFLOW.md) / [한국어 절차](ZETTEL_WORKFLOW_KO.md) for `scripts/zettel-audit.cjs`: read-only bounded snapshot checks for Ideas/Questions/summary-sidecars, current evidence/target hashes, quotes and explicit range/version coverage. Reports are create-only outside the snapshot. Descriptive native locators remain range/version-unverified; competing sidecars require owner appraisal, not automatic selection or re-pinning. This complements registry reconciliation; neither rewrites knowledge or grants approval.
+
 ## Standalone audit
 
 ```sh

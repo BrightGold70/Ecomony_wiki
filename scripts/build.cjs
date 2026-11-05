@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
-const modules={'keyword-search.cjs':'searchNotes,safeNotePath,paperDetails','dashboard-core.cjs':'buildIndex,relatedStudies,relationships','enhancements.cjs':'enhancedSearch,typedRelationships,reviewInbox,evidenceAnswer','evidence-lifecycle.cjs':'validateClaim,assessDependencies,hashContent,createReview,verifyReview','deep-search.cjs':'deepSearch','paper-navigation.cjs':'resolvePaperActions,openPaperAction,paperFrontmatter,recordedLocators','evidence-completeness.cjs':'evidenceCompleteness,completenessLabels,evidenceWarnings','entity-navigation.cjs':'ENTITY_FIELDS,validateEntities,entityMatches,entitySuggestions','publication-order.cjs':'publicationDate,comparePublicationRecent','publication-keywords.cjs':'publicationKeywords,keywordCatalog,keywordGraph,isKeywordNavigation','publication-mesh.cjs':'publicationMesh,meshCatalog,meshGraph,isMeshNavigation,isBibliographicNavigation,renderMeshAppendix,meshValidate','vault-refresh.cjs':'watchResearchVault'};
+const modules={'keyword-search.cjs':'searchNotes,safeNotePath,paperDetails','dashboard-core.cjs':'buildIndex,relatedStudies,relationships','enhancements.cjs':'enhancedSearch,typedRelationships,reviewInbox,evidenceAnswer','evidence-lifecycle.cjs':'validateClaim,assessDependencies,hashContent,createReview,verifyReview','deep-search.cjs':'deepSearch','paper-navigation.cjs':'resolvePaperActions,openPaperAction,paperFrontmatter,recordedLocators,safePaperPath,verifiedPaperFile','inert-markdown.cjs':'renderMarkdown','service-settings.cjs':'renderServiceSettings','reading-metadata.cjs':'referenceMetadata','paper-content.cjs':'paperContent','study-reading.cjs':'essentialSummary,resolveEssentialSummary,renderEssentialSummary,renderReadingContent,scanReadingWorkspace,verifyReadingEvidence,IDEA_RELATIONS','evidence-completeness.cjs':'evidenceCompleteness,completenessLabels,evidenceWarnings','entity-navigation.cjs':'ENTITY_FIELDS,validateEntities,entityMatches,entitySuggestions','publication-order.cjs':'publicationDate,comparePublicationRecent','publication-keywords.cjs':'publicationKeywords,keywordCatalog,keywordGraph,isKeywordNavigation','publication-mesh.cjs':'publicationMesh,meshCatalog,meshGraph,isMeshNavigation,isBibliographicNavigation,renderMeshAppendix,meshValidate','vault-refresh.cjs':'watchResearchVault'};
 
 function buildDashboard(options={}){
  let main=fs.readFileSync(path.join(root,'dashboard/keyword-main.js'),'utf8');
@@ -12,6 +12,7 @@ function buildDashboard(options={}){
  const notebookBody=fs.readFileSync(path.join(root,'dashboard/notebook-panel.cjs'),'utf8').replace(/^const\s+\{[^\n]+\}\s*=\s*require\(['"]\.\/[^\n]+\);?\s*$/gm,'').replace(/^module\.exports\s*=.*;?\s*$/gm,'');
  main=main.replace("const showNotebookPanel=require('./notebook-panel.cjs');",()=>`const showNotebookPanel=(()=>{\n${notebookBody}\nreturn showNotebook;\n})();`);
  new (require('node:vm').Script)(main,{filename:'economy-keyword-search/main.js'});
+ if(options.stdout)return main;
  if(options.check){return {validated:true}}
  const dest=path.join(root,'dist/economy-keyword-search');
  fs.mkdirSync(dest,{recursive:true});
@@ -31,6 +32,7 @@ function buildDashboard(options={}){
 module.exports={buildDashboard};
 
 if(require.main===module){
+ if(process.argv.includes('--stdout')){fs.writeSync(1,buildDashboard({stdout:true}));process.exit(0)}
  if(process.argv.includes('--check')){
   buildDashboard({check:true});
   console.log('Dashboard bundle validated (no files written)');

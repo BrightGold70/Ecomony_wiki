@@ -1,11 +1,13 @@
 'use strict';
 const {safeNotePath}=require('./keyword-search.cjs');
+const {safePaperPath}=require('./paper-navigation.cjs');
 const ENTITY_FIELDS=Object.freeze(['country','product','method','evidence_kind','subject','keyword']);
 
 function parseBracketList(val){
  if(Array.isArray(val))return val.map(s=>String(s).trim().replace(/^["']|["']$/g,'').trim()).filter(Boolean);
  if(typeof val!=='string')return [];
  val=val.trim();
+ if(val.startsWith('[')){try{const a=JSON.parse(val);if(Array.isArray(a))return a.filter(x=>typeof x==='string').map(x=>x.trim()).filter(Boolean)}catch{}}
  const match=val.match(/^\[(.*)\]$/);
  if(!match){
   if(val.includes(','))return val.split(',').map(s=>s.trim().replace(/^["']|["']$/g,'').trim()).filter(Boolean);
@@ -38,16 +40,13 @@ function buildTopicMap(index){
  const map=new Map();
  if(!Array.isArray(index))return map;
  for(const p of index){
-  if(p&&typeof p.path==='string'&&p.path.startsWith('economy_wiki/Topics/')){
+  if(p&&safeNotePath(p.path)&&safePaperPath(p.path,'Topics','.md')){
    const title=typeof p.title==='string'&&p.title.trim()?p.title.trim():'';
    if(title){
-    for(const link of (p.explicit||[])){
-     if(!map.has(link.target))map.set(link.target,new Set());
-     map.get(link.target).add(title);
-    }
-    const raw=typeof p.raw==='string'?p.raw:(typeof p.text==='string'?p.text:'');
+    // Intentional subject backlinks use only visible recorded Topic links, never cached edges.
+    let fence=null;const raw=String(p.raw??p.text??'').replace(/<!--[\s\S]*?(?:-->|$)/g,'').split(/\r?\n/).filter(line=>{const f=/^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);if(f){if(!fence)fence=f[1];else if(f[1][0]===fence[0]&&f[1].length>=fence.length&&!f[2].trim())fence=null;return false}return !fence}).join('\n').replace(/`+[^`]*`+/g,'');
     for(const m of raw.matchAll(/\[\[(economy_wiki\/Literature\/[^\]|#]+)(?:\|[^\]]*)?\]\]/g)){
-     let t=m[1];if(!t.endsWith('.md'))t+='.md';
+     let t=m[1];if(!t.endsWith('.md'))t+='.md';if(!safeNotePath(t)||!safePaperPath(t,'Literature','.md'))continue;
      if(!map.has(t))map.set(t,new Set());
      map.get(t).add(title);
     }
@@ -67,7 +66,7 @@ function extractFieldValues(p,field,topicMap){
    if(s&&!vals.includes(s))vals.push(s);
   }
  };
- if(p[field]!==undefined)add(p[field]);
+ if(p[field]!==undefined)add(typeof p[field]==='string'&&p[field].trim().startsWith('[')?parseBracketList(p[field]):p[field]);
  if(field==='subject'){
   if(p.subjects)add(p.subjects);
   if(p.topic)add(p.topic);
@@ -91,7 +90,7 @@ function extractFieldValues(p,field,topicMap){
   const front=(raw.match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)||[])[1]||'';
   if(front){
    const meta=parseFrontBlock(front);
-   if(meta[field]!==undefined)add(meta[field]);
+   if(meta[field]!==undefined)add(typeof meta[field]==='string'&&meta[field].trim().startsWith('[')?parseBracketList(meta[field]):meta[field]);
    if(field==='subject'){
     if(meta.subjects)add(parseBracketList(meta.subjects));
     if(meta.topic)add(meta.topic);

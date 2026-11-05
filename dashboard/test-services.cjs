@@ -5,10 +5,10 @@ class Element{
  createEl(tag,opts){const e=new Element(tag,opts,this);this.children.push(e);return e}createDiv(){return this.createEl('div')}empty(){this.children=[]}setText(v){this.text=v}setAttribute(k,v){this.attrs[k]=v}addEventListener(k,v){this.events[k]=v}appendText(t){this.text+=t}focus(){}scrollIntoView(){}all(){return [this,...this.children.flatMap(c=>c.all())]}
 }
 const repo=path.resolve(__dirname,'..'),localRequire=createRequire(path.join(__dirname,'keyword-main.js'));
-async function setup(config={},timers={}){
+async function setup(config={},timers={},bundled=false){
  const calls=[],registered=[];class Plugin{registerView(k,f){registered.push(f)}addCommand(){}addRibbonIcon(){}registerObsidianProtocolHandler(){}async loadData(){return config}}class ItemView{constructor(leaf){Object.assign(this,leaf)}}
  const spawn=(command,args,opts)=>{const child=new EventEmitter();child.stdout=new EventEmitter();child.stderr=new EventEmitter();child.stdin=new EventEmitter();child.stdin.end=data=>{child.payload=data};child.kill=()=>{child.killed=true};calls.push({command,args,opts,child});return child};
- const sandbox={module:{exports:{}},require:n=>n==='obsidian'?{Plugin,ItemView}:n==='node:child_process'?{spawn}:localRequire(n),process,Buffer,TextEncoder,setTimeout:timers.setTimeout||setTimeout,clearTimeout:timers.clearTimeout||clearTimeout};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'keyword-main.js'),'utf8'),sandbox);
+ const sandbox={module:{exports:{}},require:n=>n==='obsidian'?{Plugin,ItemView}:n==='node:child_process'?{spawn}:localRequire(n),process,Buffer,TextEncoder,setTimeout:timers.setTimeout||setTimeout,clearTimeout:timers.clearTimeout||clearTimeout};vm.runInNewContext(bundled?require('../scripts/build.cjs').buildDashboard({stdout:true}):fs.readFileSync(path.join(__dirname,'keyword-main.js'),'utf8'),sandbox);
  const plugin=new sandbox.module.exports();await plugin.onload();const root=new Element('root'),view=registered[0]({app:{vault:{adapter:{getBasePath:()=>'/approved/vault'},getMarkdownFiles:()=>[],getFiles:()=>[],getName:()=> 'approved',getAbstractFileByPath:()=>null},workspace:{openLinkText(){}}},contentEl:root});view.selected=new Set();view.filters={};view.index=[];
  const area=new Element('area');const find=text=>area.all().find(e=>e.text===text);const reply=(data,code=0)=>{const c=calls.at(-1).child;c.stdout.emit('data',JSON.stringify(data));c.emit('close',code)};
  return {view,area,root,calls,find,reply};
@@ -70,5 +70,12 @@ test('semantic cards only expose existing filtered canonical notes, never backen
 });
 test('late configuration cannot resurrect a replaced services session',async()=>{
  let release;const config=new Promise(resolve=>release=resolve),h=await setup(config);const pending=h.view.showServices(h.area,'trade');h.view.showAsk(h.area,'local');release(configured);await pending;const run=h.find('Run semantic search');assert.equal(run,undefined);assert.equal(h.calls.length,0);assert.ok(h.area.all().some(e=>/local evidence mode/.test(e.text)));
+});
+for(const bundled of [false,true])test(`settings save cancels active work, preserves blank semantic navigation, uses explicit new economy adapter (${bundled?'bundle':'source'})`,async()=>{
+ const h=await setup({...configured},{},bundled);h.view.plugin.saveData=async v=>{Object.assign(configuredSave,v)};let configuredSave={...configured};h.view.plugin.loadData=async()=>configuredSave;
+ h.view.index=[{path:'economy_wiki/Policies/p.md',title:'Trade',raw:'# Trade\nRecorded finding'}];h.view.selected.add(h.view.index[0].path);await h.view.showServices(h.area,'trade');h.find('Preview synthesis evidence').onclick();const old=h.find('Generate grounded draft — provider call'),permission=h.area.all().find(e=>e.attrs['aria-label']==='Allow selected evidence transmission');permission.checked=true;permission.onchange();const pending=h.find('Run semantic search').onclick();const oldChild=h.calls[0].child;
+ h.area.all().find(e=>e.attrs['aria-label']==='Repository path setting').value='/updated/repo';h.area.all().find(e=>e.attrs['aria-label']==='Node.js executable setting').value='/updated/node';h.area.all().find(e=>e.attrs['aria-label']==='Private QMD tool root setting').value='/updated/qmd';await h.find('Save service settings').onclick();await pending;assert.equal(oldChild.killed,true);await old.onclick();assert.equal(h.calls.length,1);assert.equal(permission.checked,false);
+ const next=h.find('Run semantic search').onclick();assert.equal(h.calls[1].command,'/updated/node');assert.equal(h.calls[1].opts.cwd,'/updated/repo');assert.deepEqual(Array.from(h.calls[1].args).slice(0,6),['/updated/repo/scripts/qmd-adapter.cjs','query','--vault','/approved/vault/economy_wiki','--tool-root','/updated/qmd']);assert.ok(!h.calls[1].args.includes('--native-cli'));h.reply({results:[],mode:'fast'});await next;
+ await h.view.showServices(h.area,'',{autoSearch:false});assert.ok(h.find('Save service settings'));assert.equal(h.calls.length,2);h.view.cancelServices();
 });
 module.exports={setup,configured,Element};
